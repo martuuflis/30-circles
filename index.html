@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>30 Circles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #fffaf0; }
+    #root { height: 100%; }
+    button { font-family: 'Caveat', cursive; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const TOTAL = 30;
+const TOTAL_SECS = 180;
+
+const DOT_BG = {
+  background: '#fffaf0',
+  backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.14) 1px, transparent 1px)',
+  backgroundSize: '16px 16px',
+};
+
+function fmt(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function haptic(ms = [40]) {
+  try { navigator.vibrate?.(ms); } catch (_) {}
+}
+
+function wobblyPath(size, seed) {
+  const r = size / 2 - 3, cx = size / 2, cy = size / 2, steps = 32;
+  let d = '';
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const j = Math.sin(seed * 3.7 + i * 1.9) * 2.2;
+    const x = cx + Math.cos(a) * (r + j);
+    const y = cy + Math.sin(a) * (r + j);
+    d += (i === 0 ? 'M' : 'L') + ` ${x.toFixed(2)} ${y.toFixed(2)} `;
+  }
+  return d + 'Z';
+}
+
+// ─── Drawing Canvas ───────────────────────────────────────────────────────────
+
+function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
+  const canvasRef = useRef(null);
+  const wrapRef = useRef(null);
+  const drawing = useRef(false);
+  const lastPos = useRef(null);
+  const hist = useRef([]);
+  const histIdx = useRef(-1);
+  const toolRef = useRef(tool);
+
+  useEffect(() => { toolRef.current = tool; }, [tool]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const wrap = wrapRef.current;
+    if (!canvas || !wrap) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = wrap.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    hist.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+    histIdx.current = 0;
+
+    undoRef.current = () => {
+      if (histIdx.current <= 0) return;
+      histIdx.current--;
+      ctx.putImageData(hist.current[histIdx.current], 0, 0);
+    };
+    redoRef.current = () => {
+      if (histIdx.current >= hist.current.length - 1) return;
+      histIdx.current++;
+      ctx.putImageData(hist.current[histIdx.current], 0, 0);
+    };
+    captureRef.current = () => canvas.toDataURL('image/png', 0.7);
+  }, []);
+
+  const getPos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const saveSnap = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    hist.current = hist.current.slice(0, histIdx.current + 1);
+    hist.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    histIdx.current = hist.current.length - 1;
+  };
+
+  const onPointerDown = (e) => {
+    drawing.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const pos = getPos(e);
+    lastPos.current = pos;
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    if (toolRef.current === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = 28;
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (!drawing.current) return;
+    const pos = getPos(e);
+    const last = lastPos.current;
+    const ctx = canvasRef.current.getContext('2d');
+    const mx = (last.x + pos.x) / 2;
+    const my = (last.y + pos.y) / 2;
+    ctx.quadraticCurveTo(last.x, last.y, mx, my);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    lastPos.current = pos;
+  };
+
+  const onPointerUp = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    saveSnap();
+  };
+
+  return (
+    <div ref={wrapRef} style={{ position: 'absolute', inset: 0 }}>
+      <canvas
+        ref={canvasRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        style={{
+          position: 'absolute', inset: 0,
+          touchAction: 'none',
+          cursor: tool === 'eraser' ? 'cell' : 'crosshair',
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Intro ────────────────────────────────────────────────────────────────────
+
+function IntroScreen({ onStart }) {
+  const decorCircles = [
+    { color: '#c8f0d0', size: 80, seed: 3,  top: '8%',  right: '12%', rotate: '8deg' },
+    { color: '#b8e0ff', size: 64, seed: 6,  bottom: '22%', left: '10%', rotate: '-5deg' },
+    { color: '#ffc1d8', size: 56, seed: 9,  bottom: '32%', right: '8%',  rotate: '3deg' },
+    { color: '#ffd4a8', size: 48, seed: 12, top: '28%',  left: '6%',   rotate: '-9deg' },
+  ];
+  return (
+    <div style={{
+      width: '100vw', height: '100vh', ...DOT_BG,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {decorCircles.map((c, i) => (
+        <div key={i} style={{
+          position: 'absolute', top: c.top, right: c.right, bottom: c.bottom, left: c.left,
+          transform: `rotate(${c.rotate})`, opacity: 0.75,
+        }}>
+          <div style={{ background: c.color, borderRadius: '50%', width: c.size, height: c.size, position: 'relative' }}>
+            <svg width={c.size} height={c.size} style={{ position: 'absolute', inset: 0 }}>
+              <path d={wobblyPath(c.size, c.seed)} stroke="#1a1a1a" strokeWidth={2} fill="none" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      ))}
+
+      <div style={{
+        background: '#fef48a', padding: '32px 36px',
+        transform: 'rotate(-2deg)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+        maxWidth: 340, width: '90%',
+        position: 'relative', zIndex: 10,
+      }}>
+        <div style={{ fontFamily: 'Caveat', fontSize: 46, color: '#2a2416', lineHeight: 0.95, fontWeight: 700 }}>
+          ready to<br/>stretch<br/>your brain?
+        </div>
+        <div style={{ marginTop: 18, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
+          30 circles · 3 minutes<br/>no wrong answers ✨
+        </div>
+        <button
+          onClick={() => { haptic([30]); onStart(); }}
+          style={{
+            marginTop: 24, width: '100%',
+            background: '#1a1a1a', color: '#fef48a',
+            border: 'none', cursor: 'pointer',
+            padding: '14px 0', borderRadius: 999,
+            fontSize: 26, fontWeight: 700,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+            transition: 'transform 0.1s, box-shadow 0.1s',
+          }}
+          onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
+          onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)'; }}
+        >
+          let's go ✏️
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Drawing Screen ───────────────────────────────────────────────────────────
+
+function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, undoRef, redoRef, captureRef }) {
+  const pct = timeLeft / TOTAL_SECS;
+  const R = 9;
+  const circ = 2 * Math.PI * R;
+  const dash = (pct * circ).toFixed(2);
+
+  return (
+    <div style={{ width: '100vw', height: '100vh', ...DOT_BG, position: 'relative', overflow: 'hidden' }}>
+
+      {/* Timer pill — top left */}
+      <div style={{
+        position: 'absolute', left: 14, top: 14,
+        background: '#fff', borderRadius: 14,
+        padding: '8px 14px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        display: 'flex', alignItems: 'center', gap: 10,
+        zIndex: 10,
+      }}>
+        <svg width={26} height={26} viewBox="0 0 22 22">
+          <circle cx="11" cy="11" r={R} fill="none" stroke="#eee" strokeWidth="2.2"/>
+          <circle cx="11" cy="11" r={R} fill="none" stroke="#ff6b6b" strokeWidth="2.2"
+            strokeDasharray={`${dash} ${circ.toFixed(2)}`}
+            transform="rotate(-90 11 11)" strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 0.9s linear' }}
+          />
+        </svg>
+        <div>
+          <div style={{ fontFamily: 'Caveat', fontSize: 22, color: '#1a1a1a', lineHeight: 1 }}>{fmt(timeLeft)}</div>
+          <div style={{ fontSize: 9, color: '#888', fontFamily: 'system-ui', letterSpacing: 0.4 }}>left</div>
+        </div>
+      </div>
+
+      {/* Count pill — top right */}
+      <div style={{
+        position: 'absolute', right: 14, top: 14,
+        background: '#fff', borderRadius: 14,
+        padding: '8px 16px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        textAlign: 'center', zIndex: 10,
+      }}>
+        <div style={{ fontFamily: 'Caveat', fontSize: 22, color: '#1a1a1a', lineHeight: 1 }}>
+          {String(circleIdx).padStart(2, '0')}/30
+        </div>
+        <div style={{ fontSize: 9, color: '#888', fontFamily: 'system-ui', letterSpacing: 0.4 }}>circles</div>
+      </div>
+
+      {/* Drawing card */}
+      <div style={{
+        position: 'absolute', left: 14, top: 70, right: 14, bottom: 72,
+        background: '#fef48a', borderRadius: 14,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        overflow: 'hidden',
+      }}>
+        {/* Circle # label */}
+        <div style={{
+          position: 'absolute', top: 10, left: 14, zIndex: 5,
+          fontFamily: 'Caveat', fontSize: 22, color: '#6a5a2a',
+          pointerEvents: 'none', userSelect: 'none',
+        }}>
+          #{String(circleIdx).padStart(2, '0')}
+        </div>
+
+        {/* Guide circle */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none', zIndex: 2, opacity: 0.15,
+        }}>
+          <svg width={210} height={210}>
+            <path d={wobblyPath(210, circleIdx)} stroke="#4a3a0a" strokeWidth={2.5} fill="none" strokeLinejoin="round"/>
+          </svg>
+        </div>
+
+        {/* Canvas */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 3 }}>
+          <DrawingCanvas
+            key={canvasKey}
+            tool={tool}
+            undoRef={undoRef}
+            redoRef={redoRef}
+            captureRef={captureRef}
+          />
+        </div>
+      </div>
+
+      {/* Tool pill — bottom left */}
+      <div style={{
+        position: 'absolute', left: 14, bottom: 14,
+        background: '#fff', borderRadius: 999,
+        padding: '8px 14px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        display: 'flex', alignItems: 'center', gap: 12,
+        zIndex: 10,
+      }}>
+        {[['pen', '✏️'], ['eraser', '🧽']].map(([t, icon]) => (
+          <button
+            key={t}
+            onClick={() => setTool(t)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 20, padding: 0,
+              opacity: tool === t ? 1 : 0.35,
+              transform: tool === t ? 'scale(1.15)' : 'scale(1)',
+              transition: 'opacity 0.15s, transform 0.15s',
+            }}
+          >{icon}</button>
+        ))}
+        <div style={{ width: 1, height: 18, background: '#e0e0e0' }}/>
+        <button
+          onClick={() => undoRef.current?.()}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', padding: 0, lineHeight: 1 }}
+        >↶</button>
+        <button
+          onClick={() => redoRef.current?.()}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Caveat', fontSize: 24, color: '#aaa', padding: 0, lineHeight: 1 }}
+        >↷</button>
+      </div>
+
+      {/* Done button — bottom right */}
+      <button
+        onClick={onDone}
+        style={{
+          position: 'absolute', right: 14, bottom: 14,
+          background: '#1a1a1a', color: '#fef48a',
+          border: 'none', cursor: 'pointer',
+          padding: '12px 28px', borderRadius: 999,
+          fontSize: 24, fontWeight: 700,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+          zIndex: 10, transition: 'transform 0.1s, box-shadow 0.1s',
+        }}
+        onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
+        onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
+        onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
+      >
+        {circleIdx >= TOTAL ? 'finish ✓' : 'done →'}
+      </button>
+    </div>
+  );
+}
+
+// ─── End Screen ───────────────────────────────────────────────────────────────
+
+function EndScreen({ count, timeLeft, drawings, onRestart }) {
+  const colors = ['#fef48a', '#ffc1d8', '#c8f0d0', '#b8e0ff', '#ffd4a8'];
+  const elapsed = TOTAL_SECS - timeLeft;
+  const cols = Math.min(count, 5);
+
+  const handleShare = async () => {
+    haptic([50, 30, 50]);
+    const text = `I drew ${count} circles in ${fmt(elapsed)}! 🎨`;
+    if (navigator.share) {
+      try { await navigator.share({ title: '30 Circles', text }); return; } catch (_) {}
+    }
+    try { await navigator.clipboard.writeText(text); } catch (_) {}
+  };
+
+  return (
+    <div style={{
+      width: '100vw', height: '100vh', ...DOT_BG,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24, overflow: 'hidden',
+    }}>
+      {[['#ff6b6b', '5vw', '5vh'], ['#3a9eea', '88vw', '8vh'], ['#f0b840', '6vw', '88vh'], ['#70c27b', '86vw', '84vh']].map(([c, l, t], i) => (
+        <div key={i} style={{ position: 'fixed', left: l, top: t, width: 12, height: 12, borderRadius: 12, background: c, opacity: 0.8 }}/>
+      ))}
+
+      <div style={{
+        maxWidth: 440, width: '100%',
+        background: '#fff', borderRadius: 16,
+        boxShadow: '0 8px 36px rgba(0,0,0,0.11)',
+        padding: '28px 28px 24px',
+        transform: 'rotate(-1deg)',
+      }}>
+        <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
+          brain: stretched ✨
+        </div>
+        <div style={{ fontSize: 15, color: '#666', fontFamily: 'system-ui', lineHeight: 1.5 }}>
+          {count} {count === 1 ? 'circle' : 'circles'} · {fmt(elapsed)}
+        </div>
+
+        {count > 0 && (
+          <div style={{
+            marginTop: 18,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap: 8,
+          }}>
+            {Array.from({ length: count }).map((_, i) => (
+              <div key={i} style={{
+                aspectRatio: '1',
+                background: colors[i % colors.length],
+                borderRadius: '50%',
+                overflow: 'hidden',
+                position: 'relative',
+              }}>
+                {drawings[i]
+                  ? <img src={drawings[i]} style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply' }} alt={`circle ${i + 1}`}/>
+                  : (
+                    <svg width="100%" height="100%" viewBox="0 0 42 42" style={{ position: 'absolute', inset: 0 }}>
+                      <path d={wobblyPath(42, i + 1)} stroke="#1a1a1a" strokeWidth={1.2} fill="none" strokeLinejoin="round"/>
+                    </svg>
+                  )
+                }
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+          <button
+            onClick={handleShare}
+            style={{
+              flex: 1, background: '#1a1a1a', color: '#fef48a',
+              border: 'none', cursor: 'pointer',
+              padding: '14px 0', borderRadius: 999,
+              fontSize: 22, fontWeight: 700,
+              transition: 'transform 0.1s',
+            }}
+            onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+            onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          >share ↗</button>
+          <button
+            onClick={onRestart}
+            style={{
+              flex: 1, background: '#fff', color: '#1a1a1a',
+              border: '2px solid #1a1a1a', cursor: 'pointer',
+              padding: '14px 0', borderRadius: 999,
+              fontSize: 22, fontWeight: 700,
+              transition: 'transform 0.1s',
+            }}
+            onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+            onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          >again</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [screen, setScreen] = useState('intro');
+  const [circleIdx, setCircleIdx] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(TOTAL_SECS);
+  const [running, setRunning] = useState(false);
+  const [tool, setTool] = useState('pen');
+  const [canvasKey, setCanvasKey] = useState(0);
+  const [drawings, setDrawings] = useState([]);
+  const undoRef = useRef(null);
+  const redoRef = useRef(null);
+  const captureRef = useRef(null);
+
+  useEffect(() => {
+    if (!running) return;
+    if (timeLeft <= 0) {
+      setRunning(false);
+      const dataUrl = captureRef.current?.();
+      if (dataUrl) setDrawings(d => [...d, dataUrl]);
+      haptic([100, 50, 100, 50, 200]);
+      setScreen('done');
+      return;
+    }
+    const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [running, timeLeft]);
+
+  const handleStart = () => {
+    setScreen('drawing');
+    setRunning(true);
+  };
+
+  const handleDone = () => {
+    haptic([40]);
+    const dataUrl = captureRef.current?.();
+    setDrawings(d => dataUrl ? [...d, dataUrl] : d);
+    if (circleIdx >= TOTAL) {
+      setRunning(false);
+      setScreen('done');
+      return;
+    }
+    setCircleIdx(i => i + 1);
+    setCanvasKey(k => k + 1);
+    setTool('pen');
+  };
+
+  const handleRestart = () => {
+    setScreen('intro');
+    setCircleIdx(1);
+    setTimeLeft(TOTAL_SECS);
+    setRunning(false);
+    setTool('pen');
+    setCanvasKey(k => k + 1);
+    setDrawings([]);
+  };
+
+  if (screen === 'intro') return <IntroScreen onStart={handleStart}/>;
+  if (screen === 'drawing') return (
+    <DrawingScreen
+      circleIdx={circleIdx}
+      timeLeft={timeLeft}
+      tool={tool}
+      setTool={setTool}
+      onDone={handleDone}
+      canvasKey={canvasKey}
+      undoRef={undoRef}
+      redoRef={redoRef}
+      captureRef={captureRef}
+    />
+  );
+  return (
+    <EndScreen
+      count={circleIdx}
+      timeLeft={timeLeft}
+      drawings={drawings}
+      onRestart={handleRestart}
+    />
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
