@@ -52,9 +52,92 @@ function wobblyPath(size, seed) {
   return d + 'Z';
 }
 
+// ─── Decorative circle with illustration ──────────────────────────────────────
+
+function DecorCircle({ color, size, seed, kind, style }) {
+  const pad = 32;
+  const tot = size + pad * 2;
+  const cx = tot / 2, cy = tot / 2;
+  const r = size / 2 - 2;
+  const sw = 2.4;
+
+  function outline() {
+    const steps = 60;
+    let d = '';
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const j = Math.sin(seed * 3.7 + i * 1.9) * 0.5;
+      const x = cx + Math.cos(a) * (r + j);
+      const y = cy + Math.sin(a) * (r + j);
+      d += (i === 0 ? 'M' : 'L') + ` ${x.toFixed(2)} ${y.toFixed(2)} `;
+    }
+    return d + 'Z';
+  }
+  const op = outline();
+
+  const blob = <circle cx={cx} cy={cy} r={r + 16} fill={color}/>;
+  let inner;
+  if (kind === 'face') {
+    inner = <>
+      {blob}
+      <path d={op} fill={color}/>
+      <circle cx={cx - r*0.36} cy={cy - r*0.16} r={r*0.09} fill="#1a1a1a"/>
+      <circle cx={cx + r*0.36} cy={cy - r*0.16} r={r*0.09} fill="#1a1a1a"/>
+      <path d={`M ${cx-r*0.42} ${cy+r*0.2} Q ${cx} ${cy+r*0.56} ${cx+r*0.42} ${cy+r*0.2}`}
+        stroke="#1a1a1a" strokeWidth={sw} fill="none" strokeLinecap="round"/>
+      <path d={op} stroke="#1a1a1a" strokeWidth={sw} fill="none" strokeLinejoin="round"/>
+    </>;
+  } else if (kind === 'planet') {
+    const rx = r * 1.65, ry = r * 0.32, rot = -20;
+    inner = <>
+      <defs>
+        <clipPath id={`pb${seed}`}><rect x={0} y={0} width={tot} height={cy}/></clipPath>
+        <clipPath id={`pf${seed}`}><rect x={0} y={cy} width={tot} height={tot}/></clipPath>
+      </defs>
+      {blob}
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="#1a1a1a" strokeWidth={sw} fill="none"
+        clipPath={`url(#pb${seed})`} transform={`rotate(${rot} ${cx} ${cy})`}/>
+      <path d={op} fill={color}/>
+      <path d={op} stroke="#1a1a1a" strokeWidth={sw} fill="none" strokeLinejoin="round"/>
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="#1a1a1a" strokeWidth={sw} fill="none"
+        clipPath={`url(#pf${seed})`} transform={`rotate(${rot} ${cx} ${cy})`}/>
+    </>;
+  } else if (kind === 'clock') {
+    inner = <>
+      {blob}
+      <path d={op} fill={color}/>
+      <line x1={cx} y1={cy} x2={cx} y2={cy - r*0.58} stroke="#1a1a1a" strokeWidth={sw} strokeLinecap="round"/>
+      <line x1={cx} y1={cy} x2={cx + r*0.46} y2={cy + r*0.12} stroke="#1a1a1a" strokeWidth={sw - 0.5} strokeLinecap="round"/>
+      <circle cx={cx} cy={cy} r={r*0.07} fill="#1a1a1a"/>
+      <path d={op} stroke="#1a1a1a" strokeWidth={sw} fill="none" strokeLinejoin="round"/>
+    </>;
+  } else if (kind === 'sun') {
+    inner = <>
+      {blob}
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return <line key={i}
+          x1={cx + Math.cos(a) * (r + 3)} y1={cy + Math.sin(a) * (r + 3)}
+          x2={cx + Math.cos(a) * (r + pad * 0.78)} y2={cy + Math.sin(a) * (r + pad * 0.78)}
+          stroke="#1a1a1a" strokeWidth={sw - 0.5} strokeLinecap="round"/>;
+      })}
+      <path d={op} fill={color}/>
+      <path d={op} stroke="#1a1a1a" strokeWidth={sw} fill="none" strokeLinejoin="round"/>
+    </>;
+  }
+
+  return (
+    <div style={{ position: 'absolute', width: size, height: size, ...style }}>
+      <svg width={tot} height={tot} style={{ position: 'absolute', top: -pad, left: -pad, overflow: 'visible' }}>
+        {inner}
+      </svg>
+    </div>
+  );
+}
+
 // ─── Drawing Canvas ───────────────────────────────────────────────────────────
 
-function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
+function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHistoryChangeRef }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const drawing = useRef(false);
@@ -62,20 +145,26 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
   const hist = useRef([]);
   const histIdx = useRef(-1);
   const toolRef = useRef(tool);
+  const seedRef = useRef(circleSeed);
 
   useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { seedRef.current = circleSeed; }, [circleSeed]);
+
+  const notifyHistory = () => {
+    onHistoryChangeRef?.current?.(histIdx.current > 0, histIdx.current < hist.current.length - 1);
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
     if (!canvas || !wrap) return;
 
+    const SIZE = 320;
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
+    canvas.width = SIZE * dpr;
+    canvas.height = SIZE * dpr;
+    canvas.style.width = SIZE + 'px';
+    canvas.style.height = SIZE + 'px';
 
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
@@ -86,14 +175,35 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
     undoRef.current = () => {
       if (histIdx.current <= 0) return;
       histIdx.current--;
-      ctx.putImageData(hist.current[histIdx.current], 0, 0);
+      canvas.getContext('2d').putImageData(hist.current[histIdx.current], 0, 0);
+      notifyHistory();
     };
     redoRef.current = () => {
       if (histIdx.current >= hist.current.length - 1) return;
       histIdx.current++;
-      ctx.putImageData(hist.current[histIdx.current], 0, 0);
+      canvas.getContext('2d').putImageData(hist.current[histIdx.current], 0, 0);
+      notifyHistory();
     };
-    captureRef.current = () => canvas.toDataURL('image/png', 0.7);
+    captureRef.current = () => {
+      const logW = SIZE, logH = SIZE;
+      const off = document.createElement('canvas');
+      off.width = canvas.width; off.height = canvas.height;
+      const octx = off.getContext('2d');
+      octx.scale(dpr, dpr);
+      const circSize = 210;
+      octx.save();
+      octx.translate(logW / 2 - circSize / 2, logH / 2 - circSize / 2);
+      octx.globalAlpha = 0.7;
+      octx.strokeStyle = '#4a3a0a';
+      octx.lineWidth = 2.5;
+      const cp = new Path2D();
+      cp.arc(circSize / 2, circSize / 2, circSize / 2 - 3, 0, Math.PI * 2);
+      octx.stroke(cp);
+      octx.restore();
+      octx.globalAlpha = 1;
+      octx.drawImage(canvas, 0, 0, logW, logH);
+      return off.toDataURL('image/png', 0.7);
+    };
   }, []);
 
   const getPos = (e) => {
@@ -107,6 +217,7 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
     hist.current = hist.current.slice(0, histIdx.current + 1);
     hist.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     histIdx.current = hist.current.length - 1;
+    notifyHistory();
   };
 
   const onPointerDown = (e) => {
@@ -150,7 +261,7 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
   };
 
   return (
-    <div ref={wrapRef} style={{ position: 'absolute', inset: 0 }}>
+    <div ref={wrapRef}>
       <canvas
         ref={canvasRef}
         onPointerDown={onPointerDown}
@@ -158,7 +269,7 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
         style={{
-          position: 'absolute', inset: 0,
+          display: 'block',
           touchAction: 'none',
           cursor: tool === 'eraser' ? 'cell' : 'crosshair',
         }}
@@ -171,10 +282,10 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef }) {
 
 function IntroScreen({ onStart }) {
   const decorCircles = [
-    { color: '#c8f0d0', size: 80, seed: 3,  top: '8%',  right: '12%', rotate: '8deg' },
-    { color: '#b8e0ff', size: 64, seed: 6,  bottom: '22%', left: '10%', rotate: '-5deg' },
-    { color: '#ffc1d8', size: 56, seed: 9,  bottom: '32%', right: '8%',  rotate: '3deg' },
-    { color: '#ffd4a8', size: 48, seed: 12, top: '28%',  left: '6%',   rotate: '-9deg' },
+    { color: '#c8f0d0', size: 90, seed: 3,  top: '8%',    right: '12%', rotate: '8deg',  kind: 'face'   },
+    { color: '#b8e0ff', size: 76, seed: 6,  bottom: '20%', left: '8%',  rotate: '-5deg', kind: 'planet' },
+    { color: '#ffc1d8', size: 70, seed: 9,  bottom: '30%', right: '7%', rotate: '3deg',  kind: 'clock'  },
+    { color: '#ffd4a8', size: 60, seed: 12, top: '26%',   left: '5%',   rotate: '-9deg', kind: 'sun'    },
   ];
   return (
     <div style={{
@@ -183,16 +294,10 @@ function IntroScreen({ onStart }) {
       position: 'relative', overflow: 'hidden',
     }}>
       {decorCircles.map((c, i) => (
-        <div key={i} style={{
-          position: 'absolute', top: c.top, right: c.right, bottom: c.bottom, left: c.left,
-          transform: `rotate(${c.rotate})`, opacity: 0.75,
-        }}>
-          <div style={{ background: c.color, borderRadius: '50%', width: c.size, height: c.size, position: 'relative' }}>
-            <svg width={c.size} height={c.size} style={{ position: 'absolute', inset: 0 }}>
-              <path d={wobblyPath(c.size, c.seed)} stroke="#1a1a1a" strokeWidth={2} fill="none" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        </div>
+        <DecorCircle key={i} {...c} style={{
+          top: c.top, right: c.right, bottom: c.bottom, left: c.left,
+          transform: `rotate(${c.rotate})`, opacity: 0.88,
+        }}/>
       ))}
 
       <div style={{
@@ -206,7 +311,7 @@ function IntroScreen({ onStart }) {
           ready to<br/>stretch<br/>your brain?
         </div>
         <div style={{ marginTop: 18, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
-          30 circles · 3 minutes<br/>no wrong answers ✨
+          30 circles · 3 minutes<br/>no wrong answers
         </div>
         <button
           onClick={() => { haptic([30]); onStart(); }}
@@ -229,6 +334,29 @@ function IntroScreen({ onStart }) {
   );
 }
 
+function ArrowBtn({ label, onClick, disabled }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      onPointerDown={disabled ? undefined : () => setPressed(true)}
+      onPointerUp={disabled ? undefined : () => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      style={{
+        background: pressed ? '#1a1a1a' : 'transparent',
+        border: 'none', borderRadius: 8,
+        cursor: disabled ? 'default' : 'pointer',
+        padding: '4px 10px', lineHeight: 1,
+        fontFamily: 'Caveat', fontSize: 26,
+        color: pressed ? '#fef48a' : '#1a1a1a',
+        opacity: disabled ? 0.25 : 1,
+        transform: pressed ? 'scale(0.88)' : 'scale(1)',
+        transition: 'transform 0.08s, background 0.08s, color 0.08s, opacity 0.15s',
+      }}
+    >{label}</button>
+  );
+}
+
 // ─── Drawing Screen ───────────────────────────────────────────────────────────
 
 function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, undoRef, redoRef, captureRef }) {
@@ -236,6 +364,13 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
   const R = 9;
   const circ = 2 * Math.PI * R;
   const dash = (pct * circ).toFixed(2);
+
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const onHistoryChangeRef = useRef(null);
+  onHistoryChangeRef.current = (u, r) => { setCanUndo(u); setCanRedo(r); };
+
+  useEffect(() => { setCanUndo(false); setCanRedo(false); }, [canvasKey]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', ...DOT_BG, position: 'relative', overflow: 'hidden' }}>
@@ -297,57 +432,41 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          pointerEvents: 'none', zIndex: 2, opacity: 0.15,
+          pointerEvents: 'none', zIndex: 2, opacity: 0.7,
         }}>
           <svg width={210} height={210}>
-            <path d={wobblyPath(210, circleIdx)} stroke="#4a3a0a" strokeWidth={2.5} fill="none" strokeLinejoin="round"/>
+            <circle cx={105} cy={105} r={102} stroke="#4a3a0a" strokeWidth={2.5} fill="none"/>
           </svg>
         </div>
 
         {/* Canvas */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 3 }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3 }}>
           <DrawingCanvas
             key={canvasKey}
             tool={tool}
             undoRef={undoRef}
             redoRef={redoRef}
             captureRef={captureRef}
+            circleSeed={circleIdx}
+            onHistoryChangeRef={onHistoryChangeRef}
           />
         </div>
       </div>
 
-      {/* Tool pill — bottom left */}
-      <div style={{
-        position: 'absolute', left: 14, bottom: 14,
-        background: '#fff', borderRadius: 999,
-        padding: '8px 14px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        display: 'flex', alignItems: 'center', gap: 12,
-        zIndex: 10,
-      }}>
-        {[['pen', '✏️'], ['eraser', '🧽']].map(([t, icon]) => (
-          <button
-            key={t}
-            onClick={() => setTool(t)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 20, padding: 0,
-              opacity: tool === t ? 1 : 0.35,
-              transform: tool === t ? 'scale(1.15)' : 'scale(1)',
-              transition: 'opacity 0.15s, transform 0.15s',
-            }}
-          >{icon}</button>
-        ))}
-        <div style={{ width: 1, height: 18, background: '#e0e0e0' }}/>
-        <button
-          onClick={() => undoRef.current?.()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', padding: 0, lineHeight: 1 }}
-        >↶</button>
-        <button
-          onClick={() => redoRef.current?.()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Caveat', fontSize: 24, color: '#aaa', padding: 0, lineHeight: 1 }}
-        >↷</button>
-      </div>
+      {/* Undo / redo pill — bottom left */}
+      {true && (
+        <div style={{
+          position: 'absolute', left: 14, bottom: 14,
+          background: '#fff', borderRadius: 999,
+          padding: '6px 10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          display: 'flex', alignItems: 'center', gap: 2,
+          zIndex: 10,
+        }}>
+          <ArrowBtn label="↶" onClick={() => undoRef.current?.()} disabled={!canUndo} />
+          <ArrowBtn label="↷" onClick={() => redoRef.current?.()} disabled={!canRedo} />
+        </div>
+      )}
 
       {/* Done button — bottom right */}
       <button
@@ -391,7 +510,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
     <div style={{
       width: '100vw', height: '100vh', ...DOT_BG,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 24, overflow: 'hidden',
+      padding: '24px 24px 100px', overflow: 'hidden',
     }}>
       {[['#ff6b6b', '5vw', '5vh'], ['#3a9eea', '88vw', '8vh'], ['#f0b840', '6vw', '88vh'], ['#70c27b', '86vw', '84vh']].map(([c, l, t], i) => (
         <div key={i} style={{ position: 'fixed', left: l, top: t, width: 12, height: 12, borderRadius: 12, background: c, opacity: 0.8 }}/>
@@ -411,60 +530,53 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
           {count} {count === 1 ? 'circle' : 'circles'} · {fmt(elapsed)}
         </div>
 
-        {count > 0 && (
-          <div style={{
-            marginTop: 18,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gap: 8,
-          }}>
-            {Array.from({ length: count }).map((_, i) => (
-              <div key={i} style={{
-                aspectRatio: '1',
+        <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          {Array.from({ length: count }).map((_, i) => (
+            <div key={i} style={{ aspectRatio: '1', position: 'relative' }}>
+              {/* colored blob — outgrows the circle */}
+              <div style={{
+                position: 'absolute', inset: '-20%',
                 background: colors[i % colors.length],
                 borderRadius: '50%',
-                overflow: 'hidden',
-                position: 'relative',
+              }}/>
+              {/* drawing circle — offset toward top-left of the shadow */}
+              <div style={{
+                position: 'absolute',
+                top: '-8%', left: '-8%', right: '8%', bottom: '8%',
+                borderRadius: '50%', overflow: 'hidden',
               }}>
                 {drawings[i]
                   ? <img src={drawings[i]} style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply' }} alt={`circle ${i + 1}`}/>
-                  : (
-                    <svg width="100%" height="100%" viewBox="0 0 42 42" style={{ position: 'absolute', inset: 0 }}>
-                      <path d={wobblyPath(42, i + 1)} stroke="#1a1a1a" strokeWidth={1.2} fill="none" strokeLinejoin="round"/>
+                  : <svg width="100%" height="100%" viewBox="0 0 42 42" style={{ position: 'absolute', inset: 0 }}>
+                      <circle cx={21} cy={21} r={19} stroke="#1a1a1a" strokeWidth={1.2} fill="none"/>
                     </svg>
-                  )
                 }
               </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
-          <button
-            onClick={handleShare}
-            style={{
-              flex: 1, background: '#1a1a1a', color: '#fef48a',
-              border: 'none', cursor: 'pointer',
-              padding: '14px 0', borderRadius: 999,
-              fontSize: 22, fontWeight: 700,
-              transition: 'transform 0.1s',
-            }}
-            onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-            onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
-          >share ↗</button>
-          <button
-            onClick={onRestart}
-            style={{
-              flex: 1, background: '#fff', color: '#1a1a1a',
-              border: '2px solid #1a1a1a', cursor: 'pointer',
-              padding: '14px 0', borderRadius: 999,
-              fontSize: 22, fontWeight: 700,
-              transition: 'transform 0.1s',
-            }}
-            onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-            onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
-          >again</button>
+            </div>
+          ))}
         </div>
+      </div>
+
+      <div style={{
+        position: 'fixed', bottom: 20, left: 0, right: 0,
+        display: 'flex', gap: 12, padding: '0 20px', justifyContent: 'center',
+        zIndex: 10,
+      }}>
+        {[
+          { label: 'do it again', onClick: onRestart, bg: '#fff', color: '#1a1a1a', border: '2px solid #1a1a1a' },
+          { label: 'share ↗',    onClick: handleShare, bg: '#1a1a1a', color: '#fef48a', border: 'none' },
+        ].map(({ label, onClick, bg, color, border }) => (
+          <button key={label} onClick={onClick} style={{
+            width: 160, background: bg, color, border,
+            cursor: 'pointer', padding: '14px 0', borderRadius: 999,
+            fontFamily: 'Caveat', fontSize: 22, fontWeight: 700,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+            transition: 'transform 0.1s',
+          }}
+            onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+            onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          >{label}</button>
+        ))}
       </div>
     </div>
   );
