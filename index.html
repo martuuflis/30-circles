@@ -16,6 +16,14 @@
     html, body { height: 100%; overflow: hidden; background: #fffaf0; }
     #root { height: 100%; }
     button { font-family: 'Caveat', cursive; }
+    @keyframes slideOutLeft {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-110%); }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(110%); }
+      to   { transform: translateX(0); }
+    }
   </style>
 </head>
 <body>
@@ -25,6 +33,7 @@ const { useState, useEffect, useRef } = React;
 
 const TOTAL = 30;
 const TOTAL_SECS = 180;
+const CARD_COLORS = ['#fef48a', '#ffc1d8', '#c8f0d0', '#b8e0ff', '#ffd4a8'];
 
 const DOT_BG = {
   background: '#fffaf0',
@@ -386,6 +395,16 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
 
   useEffect(() => { setCanUndo(false); setCanRedo(false); }, [canvasKey]);
 
+  const [isPushing, setIsPushing] = useState(false);
+
+  const handleNext = () => {
+    setIsPushing(true);
+    setTimeout(() => {
+      onDone();
+      setIsPushing(false);
+    }, 400);
+  };
+
   return (
     <div style={{ width: '100vw', height: '100dvh', ...DOT_BG, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
@@ -438,41 +457,54 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         </div>
       </div>
 
-      {/* Drawing card — fills remaining space */}
+      {/* Drawing card — clipping wrapper */}
       <div style={{
         flex: 1, margin: '14px 14px 0', minHeight: 0,
-        background: '#fef48a', borderRadius: 14,
+        borderRadius: 14, overflow: 'hidden', position: 'relative',
         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-        overflow: 'hidden', position: 'relative',
       }}>
-        {/* Circle # label */}
-        <div style={{
-          position: 'absolute', top: 10, left: 14, zIndex: 5,
-          fontFamily: 'Caveat', fontSize: 22, color: '#6a5a2a',
-          pointerEvents: 'none', userSelect: 'none',
-        }}>
-          #{String(circleIdx).padStart(2, '0')}
-        </div>
-        {/* Guide circle — centered, fixed size */}
+        {/* Current card — slides out left */}
         <div style={{
           position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'none', zIndex: 1,
+          background: CARD_COLORS[(circleIdx - 1) % CARD_COLORS.length], borderRadius: 14, overflow: 'hidden',
+          animation: isPushing ? 'slideOutLeft 0.4s ease-in-out forwards' : 'none',
         }}>
-          <svg width={220} height={220}>
-            <circle cx={110} cy={110} r={107} stroke="#1F1F1F" strokeWidth={3} fill="none" opacity={1}/>
-          </svg>
+          <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 5, fontFamily: 'Caveat', fontSize: 22, color: '#6a5a2a', pointerEvents: 'none', userSelect: 'none' }}>
+            #{String(circleIdx).padStart(2, '0')}
+          </div>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 1 }}>
+            <svg width={220} height={220}>
+              <circle cx={110} cy={110} r={107} stroke="#1F1F1F" strokeWidth={3} fill="none" opacity={1}/>
+            </svg>
+          </div>
+          <DrawingCanvas
+            key={canvasKey}
+            tool={tool}
+            undoRef={undoRef}
+            redoRef={redoRef}
+            captureRef={captureRef}
+            circleSeed={circleIdx}
+            onHistoryChangeRef={onHistoryChangeRef}
+          />
         </div>
-        {/* Canvas fills the full card, resizes with it */}
-        <DrawingCanvas
-          key={canvasKey}
-          tool={tool}
-          undoRef={undoRef}
-          redoRef={redoRef}
-          captureRef={captureRef}
-          circleSeed={circleIdx}
-          onHistoryChangeRef={onHistoryChangeRef}
-        />
+
+        {/* Next card placeholder — slides in from right simultaneously */}
+        {isPushing && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: CARD_COLORS[circleIdx % CARD_COLORS.length], borderRadius: 14, overflow: 'hidden',
+            animation: 'slideInRight 0.4s ease-in-out forwards',
+          }}>
+            <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 5, fontFamily: 'Caveat', fontSize: 22, color: '#6a5a2a', pointerEvents: 'none', userSelect: 'none' }}>
+              #{String(circleIdx + 1).padStart(2, '0')}
+            </div>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 1 }}>
+              <svg width={220} height={220}>
+                <circle cx={110} cy={110} r={107} stroke="#1F1F1F" strokeWidth={3} fill="none" opacity={1}/>
+              </svg>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom bar — fixed to bottom */}
@@ -491,7 +523,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
 
         {/* Next button */}
         <button
-          onClick={onDone}
+          onClick={handleNext}
           style={{
             background: '#1a1a1a', color: '#fef48a',
             border: 'none', cursor: 'pointer',
@@ -514,7 +546,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
 // ─── End Screen ───────────────────────────────────────────────────────────────
 
 function EndScreen({ count, timeLeft, drawings, onRestart }) {
-  const colors = ['#fef48a', '#ffc1d8', '#c8f0d0', '#b8e0ff', '#ffd4a8'];
+  const colors = CARD_COLORS;
   const elapsed = TOTAL_SECS - timeLeft;
   const cols = Math.min(count, 5);
 
