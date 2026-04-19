@@ -349,10 +349,10 @@ function IntroScreen({ onStart }) {
         position: 'relative', zIndex: 10,
       }}>
         <div style={{ fontFamily: 'Caveat', fontSize: 46, color: '#2a2416', lineHeight: 1.05, fontWeight: 700 }}>
-          ready to spark<br/>your creativity?
+          Ready to spark<br/>your creativity?
         </div>
         <div style={{ marginTop: 8, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
-          take on the 30 circles challenge!<br/>turn as many blank circles as possible into recognizable objects in 3 minutes
+          Take on the 30 circles challenge!<br/>Turn as many blank circles as possible into recognizable objects in 3 minutes
         </div>
         <button
           onClick={() => { haptic([30]); onStart(); }}
@@ -368,7 +368,7 @@ function IntroScreen({ onStart }) {
           onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
           onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)'; }}
         >
-          let's start!
+          Let's start!
         </button>
       </div>
     </div>
@@ -447,7 +447,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
           </svg>
           <div style={{ textAlign: 'left', width: 40 }}>
             <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>{fmt(timeLeft)}</div>
-            <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>left</div>
+            <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>Left</div>
           </div>
         </div>
 
@@ -464,7 +464,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
           <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>
             {String(circleIdx).padStart(2, '0')}/30
           </div>
-          <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>circles</div>
+          <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>Circles</div>
         </div>
       </div>
 
@@ -547,7 +547,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
           onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
           onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
         >
-          {circleIdx >= TOTAL ? <span style={{display:'flex',alignItems:'center',gap:8}}><span style={{position:'relative',top:'-2px'}}>finish</span> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.53033 12.9697C4.23744 12.6768 3.76256 12.6768 3.46967 12.9697C3.17678 13.2626 3.17678 13.7374 3.46967 14.0303L7.96967 18.5303C8.26256 18.8232 8.73744 18.8232 9.03033 18.5303L20.0303 7.53033C20.3232 7.23744 20.3232 6.76256 20.0303 6.46967C19.7374 6.17678 19.2626 6.17678 18.9697 6.46967L8.5 16.9393L4.53033 12.9697Z" fill="currentColor"/></svg></span> : <span style={{display:'flex',alignItems:'center',gap:8}}><span style={{position:'relative',top:'-2px'}}>next</span> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.46967 4.21967C8.17678 4.51256 8.17678 4.98744 8.46967 5.28033L15.1893 12L8.46967 18.7197C8.17678 19.0126 8.17678 19.4874 8.46967 19.7803C8.76256 20.0732 9.23744 20.0732 9.53033 19.7803L16.7803 12.5303C17.0732 12.2374 17.0732 11.7626 16.7803 11.4697L9.53033 4.21967C9.23744 3.92678 8.76256 3.92678 8.46967 4.21967Z" fill="currentColor"/></svg></span>}
+          {circleIdx >= TOTAL ? <span style={{display:'flex',alignItems:'center',gap:8}}><span style={{position:'relative',top:'-2px'}}>Finish</span> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.53033 12.9697C4.23744 12.6768 3.76256 12.6768 3.46967 12.9697C3.17678 13.2626 3.17678 13.7374 3.46967 14.0303L7.96967 18.5303C8.26256 18.8232 8.73744 18.8232 9.03033 18.5303L20.0303 7.53033C20.3232 7.23744 20.3232 6.76256 20.0303 6.46967C19.7374 6.17678 19.2626 6.17678 18.9697 6.46967L8.5 16.9393L4.53033 12.9697Z" fill="currentColor"/></svg></span> : <span style={{display:'flex',alignItems:'center',gap:8}}><span style={{position:'relative',top:'-2px'}}>Next</span> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.46967 4.21967C8.17678 4.51256 8.17678 4.98744 8.46967 5.28033L15.1893 12L8.46967 18.7197C8.17678 19.0126 8.17678 19.4874 8.46967 19.7803C8.76256 20.0732 9.23744 20.0732 9.53033 19.7803L16.7803 12.5303C17.0732 12.2374 17.0732 11.7626 16.7803 11.4697L9.53033 4.21967C9.23744 3.92678 8.76256 3.92678 8.46967 4.21967Z" fill="currentColor"/></svg></span>}
         </button>
       </div>
     </div>
@@ -561,9 +561,9 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
   const elapsed = TOTAL_SECS - timeLeft;
   const cols = Math.min(count, 5);
 
-  const handleDownload = async () => {
-    haptic([50]);
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
+  const buildShareCanvas = async () => {
     const cols = 5;
     const rows = Math.ceil(count / cols);
     const cellSize = 72;
@@ -689,11 +689,40 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
     }
 
     ctx.restore();
+    return off;
+  };
 
+  const triggerDownload = (off) => {
     const a = document.createElement('a');
     a.download = '30-circles.png';
     a.href = off.toDataURL('image/png');
     a.click();
+  };
+
+  const handleDownload = async () => {
+    haptic([50]);
+    const off = await buildShareCanvas();
+    triggerDownload(off);
+  };
+
+  const handleShare = async () => {
+    haptic([50]);
+    const off = await buildShareCanvas();
+    const blob = await new Promise(res => off.toBlob(res, 'image/png'));
+    const file = new File([blob], '30-circles.png', { type: 'image/png' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          text: `I turned ${count} circles into drawings in 3 minutes. Think you can beat me? Take the 30 circles challenge!`,
+          url: 'https://martuuflis.github.io/30-circles/',
+        });
+      } catch (e) {
+        if (e.name !== 'AbortError') triggerDownload(off);
+      }
+    } else {
+      triggerDownload(off);
+    }
   };
 
   return (
@@ -715,12 +744,16 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         transform: 'rotate(-1deg)',
       }} className="end-card">
         <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
-          creativity <span style={{whiteSpace: 'nowrap'}}>sparkled ✨</span>
+          {count === 0
+            ? 'No circles yet!'
+            : <>Creativity <span style={{whiteSpace: 'nowrap'}}>sparkled ✨</span></>}
         </div>
         <div style={{ fontSize: 18, color: '#666', fontFamily: 'Caveat', lineHeight: 1.5 }}>
-          {count < 30
-            ? `you drew ${count} ${count === 1 ? 'circle' : 'circles'} in 3 minutes, well done!`
-            : `you drew ${count} circles in 3 minutes, challenge completed!`}
+          {count === 0
+            ? "Looks like the timer ran out before you started. Your next round is where it all starts, give it a go!"
+            : count < 30
+              ? `You drew ${count} ${count === 1 ? 'circle' : 'circles'} in 3 minutes, well done!`
+              : `You drew ${count} circles in 3 minutes, challenge completed!`}
         </div>
 
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
@@ -754,15 +787,16 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
 
       <div style={{
         position: 'fixed', bottom: 'max(20px, calc(20px + env(safe-area-inset-bottom)))', left: 0, right: 0,
-        display: 'flex', gap: 12, padding: '0 20px', justifyContent: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '0 20px',
         zIndex: 10,
       }}>
         {[
-          { label: 'do it again',  onClick: onRestart,        bg: '#fff',    color: '#1a1a1a', border: '2px solid #1a1a1a' },
-          { label: <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>download <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18.2498 20.5009C18.664 20.5008 19 20.8365 19 21.2507C19 21.6649 18.6644 22.0008 18.2502 22.0009L5.25022 22.0047C4.836 22.0048 4.5 21.6691 4.5 21.2549C4.5 20.8407 4.83557 20.5048 5.24978 20.5047L18.2498 20.5009ZM11.6482 2.01271L11.75 2.00586C12.1297 2.00586 12.4435 2.28801 12.4932 2.65409L12.5 2.75586L12.499 16.4409L16.2208 12.7205C16.4871 12.4543 16.9038 12.4301 17.1974 12.648L17.2815 12.7206C17.5477 12.9869 17.5719 13.4036 17.354 13.6972L17.2814 13.7813L12.2837 18.7779C12.0176 19.044 11.6012 19.0683 11.3076 18.8507L11.2235 18.7782L6.22003 13.7816C5.92694 13.4889 5.92661 13.014 6.21931 12.7209C6.48539 12.4545 6.90204 12.43 7.1958 12.6477L7.27997 12.7202L10.999 16.4339L11 2.75586C11 2.37616 11.2822 2.06237 11.6482 2.01271Z" fill="currentColor"/></svg></span>, onClick: handleDownload, bg: '#1a1a1a', color: '#fef48a', border: 'none' },
-        ].map(({ label, onClick, bg, color, border }) => (
+          { label: 'Try again', onClick: onRestart, bg: '#fff', color: '#1a1a1a', border: '2px solid #1a1a1a', width: '100%' },
+          { label: <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>Share with a friend <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6.25 3C4.45507 3 3 4.45507 3 6.25V17.75C3 19.5449 4.45507 21 6.25 21H17.75C19.5449 21 21 19.5449 21 17.75V6.25C21 4.45507 19.5449 3 17.75 3H6.25ZM4.5 6.25C4.5 5.2835 5.2835 4.5 6.25 4.5H17.75C18.7165 4.5 19.5 5.2835 19.5 6.25V17.75C19.5 18.7165 18.7165 19.5 17.75 19.5H6.25C5.2835 19.5 4.5 18.7165 4.5 17.75V6.25ZM8.75 9.5H13.4905L8.22232 14.7172C7.928 15.0086 7.92569 15.4835 8.21715 15.7778C8.50862 16.0721 8.98349 16.0744 9.2778 15.783L14.5 10.6114V15.25C14.5 15.6642 14.8358 16 15.25 16C15.6642 16 16 15.6642 16 15.25V8.75C16 8.33579 15.6642 8 15.25 8H8.75C8.33579 8 8 8.33579 8 8.75C8 9.16421 8.33579 9.5 8.75 9.5Z" fill="currentColor"/></svg></span>, onClick: handleShare, bg: '#1a1a1a', color: '#fef48a', border: 'none', width: '100%', hidden: count === 0 || !canNativeShare },
+          { label: <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>Download as an image <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18.2498 20.5009C18.664 20.5008 19 20.8365 19 21.2507C19 21.6649 18.6644 22.0008 18.2502 22.0009L5.25022 22.0047C4.836 22.0048 4.5 21.6691 4.5 21.2549C4.5 20.8407 4.83557 20.5048 5.24978 20.5047L18.2498 20.5009ZM11.6482 2.01271L11.75 2.00586C12.1297 2.00586 12.4435 2.28801 12.4932 2.65409L12.5 2.75586L12.499 16.4409L16.2208 12.7205C16.4871 12.4543 16.9038 12.4301 17.1974 12.648L17.2815 12.7206C17.5477 12.9869 17.5719 13.4036 17.354 13.6972L17.2814 13.7813L12.2837 18.7779C12.0176 19.044 11.6012 19.0683 11.3076 18.8507L11.2235 18.7782L6.22003 13.7816C5.92694 13.4889 5.92661 13.014 6.21931 12.7209C6.48539 12.4545 6.90204 12.43 7.1958 12.6477L7.27997 12.7202L10.999 16.4339L11 2.75586C11 2.37616 11.2822 2.06237 11.6482 2.01271Z" fill="currentColor"/></svg></span>, onClick: handleDownload, bg: '#1a1a1a', color: '#fef48a', border: 'none', width: '100%', hidden: count === 0 },
+        ].filter(({ hidden }) => !hidden).map(({ label, onClick, bg, color, border, width }) => (
           <button key={label} onClick={onClick} style={{
-            width: 160, background: bg, color, border,
+            width, background: bg, color, border,
             cursor: 'pointer', padding: '14px 0', borderRadius: 999,
             fontFamily: 'Caveat', fontSize: 22, fontWeight: 700,
             boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
