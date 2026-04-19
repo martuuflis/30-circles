@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <title>30 Circles</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
@@ -302,7 +302,7 @@ function IntroScreen({ onStart }) {
   ];
   return (
     <div style={{
-      width: '100vw', height: '100vh', ...DOT_BG,
+      width: '100vw', height: '100dvh', ...DOT_BG,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden',
     }}>
@@ -386,19 +386,19 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
   useEffect(() => { setCanUndo(false); setCanRedo(false); }, [canvasKey]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', ...DOT_BG, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100dvh', ...DOT_BG, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* Top bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 14px 0', flexShrink: 0, position: 'relative' }}>
         {/* Timer pill */}
         <div style={{
           background: '#fff', borderRadius: 14,
-          padding: '0 14px',
+          padding: '0 14px 2px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           display: 'flex', alignItems: 'center', gap: 10,
           height: 60,
         }}>
-          <svg width={32} height={32} viewBox="0 0 22 22">
+          <svg width={40} height={40} viewBox="0 0 22 22">
             <circle cx="11" cy="11" r={R} fill="none" stroke="#eee" strokeWidth="2.2"/>
             <circle cx="11" cy="11" r={R} fill="none" stroke="#ff6b6b" strokeWidth="2.2"
               strokeDasharray={`${dash} ${circ.toFixed(2)}`}
@@ -406,9 +406,9 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
               style={{ transition: 'stroke-dasharray 0.9s linear' }}
             />
           </svg>
-          <div>
+          <div style={{ textAlign: 'left' }}>
             <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>{fmt(timeLeft)}</div>
-            <div style={{ fontSize: 13, color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>left</div>
+            <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>left</div>
           </div>
         </div>
 
@@ -424,7 +424,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         {/* Count pill */}
         <div style={{
           background: '#fff', borderRadius: 14,
-          padding: '0 16px',
+          padding: '0 16px 2px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           textAlign: 'left',
           height: 60,
@@ -433,7 +433,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
           <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>
             {String(circleIdx).padStart(2, '0')}/30
           </div>
-          <div style={{ fontSize: 13, color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>circles</div>
+          <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>circles</div>
         </div>
       </div>
 
@@ -475,7 +475,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
       </div>
 
       {/* Bottom bar — fixed to bottom */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', paddingBottom: 'max(14px, calc(14px + env(safe-area-inset-bottom)))', flexShrink: 0 }}>
         {/* Undo / redo pill */}
         <div style={{
           background: '#fff', borderRadius: 999,
@@ -624,7 +624,11 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         ctx.arc(cx, cy, imgR, 0, Math.PI * 2);
         ctx.clip();
         ctx.globalCompositeOperation = 'multiply';
-        ctx.drawImage(imgEls[i], cx - imgR, cy - imgR, imgR * 2, imgR * 2);
+        const iw = imgEls[i].naturalWidth, ih = imgEls[i].naturalHeight;
+        const scale = Math.max((imgR * 2) / iw, (imgR * 2) / ih);
+        const sw = (imgR * 2) / scale, sh = (imgR * 2) / scale;
+        const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+        ctx.drawImage(imgEls[i], sx, sy, sw, sh, cx - imgR, cy - imgR, imgR * 2, imgR * 2);
         ctx.restore();
       } else {
         ctx.globalCompositeOperation = 'source-over';
@@ -646,7 +650,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
 
   return (
     <div style={{
-      width: '100vw', height: '100vh', ...DOT_BG,
+      width: '100vw', height: '100dvh', ...DOT_BG,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '24px 24px 100px', overflow: 'hidden',
     }}>
@@ -664,7 +668,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
           brain: stretched ✨
         </div>
-        <div style={{ fontSize: 15, color: '#666', fontFamily: 'system-ui', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 18, color: '#666', fontFamily: 'Caveat', lineHeight: 1.5 }}>
           {count} {count === 1 ? 'circle' : 'circles'} · {fmt(elapsed)}
         </div>
 
@@ -698,7 +702,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
       </div>
 
       <div style={{
-        position: 'fixed', bottom: 20, left: 0, right: 0,
+        position: 'fixed', bottom: 'max(20px, calc(20px + env(safe-area-inset-bottom)))', left: 0, right: 0,
         display: 'flex', gap: 12, padding: '0 20px', justifyContent: 'center',
         zIndex: 10,
       }}>
