@@ -160,15 +160,16 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
     const dims = { W: 0, H: 0 };
 
     const resize = () => {
-      const W = canvas.offsetWidth;
-      const H = canvas.offsetHeight;
-      if (!W || !H || (W === dims.W && H === dims.H)) return;
+      const rect = canvas.getBoundingClientRect();
+      const W = rect.width;
+      const H = rect.height;
+      if (!W || !H || (Math.abs(W - dims.W) < 0.5 && Math.abs(H - dims.H) < 0.5)) return;
       const saved = (dims.W > 0) ? canvas.toDataURL() : null;
       dims.W = W; dims.H = H;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
       const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
+      ctx.scale(canvas.width / W, canvas.height / H);
       const snap = () => {
         hist.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
         histIdx.current = 0;
@@ -251,16 +252,19 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
 
   const onPointerMove = (e) => {
     if (!drawing.current) return;
-    const pos = getPos(e);
-    const last = lastPos.current;
     const ctx = canvasRef.current.getContext('2d');
-    const mx = (last.x + pos.x) / 2;
-    const my = (last.y + pos.y) / 2;
-    ctx.quadraticCurveTo(last.x, last.y, mx, my);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(mx, my);
-    lastPos.current = pos;
+    const events = e.getCoalescedEvents?.() ?? [e];
+    for (const evt of events) {
+      const pos = getPos(evt);
+      const last = lastPos.current;
+      const mx = (last.x + pos.x) / 2;
+      const my = (last.y + pos.y) / 2;
+      ctx.quadraticCurveTo(last.x, last.y, mx, my);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      lastPos.current = pos;
+    }
   };
 
   const onPointerUp = () => {
@@ -291,10 +295,10 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
 
 function IntroScreen({ onStart }) {
   const decorCircles = [
-    { color: '#c8f0d0', size: 90, seed: 3,  top: '8%',    right: '12%', rotate: '8deg',  kind: 'face'   },
-    { color: '#b8e0ff', size: 76, seed: 6,  bottom: '20%', left: '8%',  rotate: '-5deg', kind: 'planet' },
-    { color: '#ffc1d8', size: 70, seed: 9,  bottom: '30%', right: '7%', rotate: '3deg',  kind: 'clock'  },
-    { color: '#ffd4a8', size: 60, seed: 12, top: '26%',   left: '5%',   rotate: '-9deg', kind: 'sun'    },
+    { color: '#c8f0d0', size: 90, seed: 3,  top: 'calc(8% - 40px)',    right: '12%', rotate: '8deg',  kind: 'face'   },
+    { color: '#b8e0ff', size: 76, seed: 6,  bottom: 'calc(20% - 80px)', left: '8%',  rotate: '-5deg', kind: 'planet' },
+    { color: '#ffc1d8', size: 70, seed: 9,  bottom: 'calc(30% - 80px)', right: '7%', rotate: '3deg',  kind: 'clock'  },
+    { color: '#ffd4a8', size: 60, seed: 12, top: 'calc(26% - 40px)',   left: '5%',   rotate: '-9deg', kind: 'sun'    },
   ];
   return (
     <div style={{
@@ -382,51 +386,63 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
   useEffect(() => { setCanUndo(false); setCanRedo(false); }, [canvasKey]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', ...DOT_BG, position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', ...DOT_BG, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-      {/* Timer pill — top left */}
-      <div style={{
-        position: 'absolute', left: 14, top: 14,
-        background: '#fff', borderRadius: 14,
-        padding: '8px 14px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        display: 'flex', alignItems: 'center', gap: 10,
-        zIndex: 10,
-      }}>
-        <svg width={26} height={26} viewBox="0 0 22 22">
-          <circle cx="11" cy="11" r={R} fill="none" stroke="#eee" strokeWidth="2.2"/>
-          <circle cx="11" cy="11" r={R} fill="none" stroke="#ff6b6b" strokeWidth="2.2"
-            strokeDasharray={`${dash} ${circ.toFixed(2)}`}
-            transform="rotate(-90 11 11)" strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 0.9s linear' }}
-          />
-        </svg>
-        <div>
-          <div style={{ fontFamily: 'Caveat', fontSize: 22, color: '#1a1a1a', lineHeight: 1 }}>{fmt(timeLeft)}</div>
-          <div style={{ fontSize: 9, color: '#888', fontFamily: 'system-ui', letterSpacing: 0.4 }}>left</div>
+      {/* Top bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 14px 0', flexShrink: 0, position: 'relative' }}>
+        {/* Timer pill */}
+        <div style={{
+          background: '#fff', borderRadius: 14,
+          padding: '0 14px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          display: 'flex', alignItems: 'center', gap: 10,
+          height: 60,
+        }}>
+          <svg width={32} height={32} viewBox="0 0 22 22">
+            <circle cx="11" cy="11" r={R} fill="none" stroke="#eee" strokeWidth="2.2"/>
+            <circle cx="11" cy="11" r={R} fill="none" stroke="#ff6b6b" strokeWidth="2.2"
+              strokeDasharray={`${dash} ${circ.toFixed(2)}`}
+              transform="rotate(-90 11 11)" strokeLinecap="round"
+              style={{ transition: 'stroke-dasharray 0.9s linear' }}
+            />
+          </svg>
+          <div>
+            <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>{fmt(timeLeft)}</div>
+            <div style={{ fontSize: 13, color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>left</div>
+          </div>
+        </div>
+
+        {/* Debug button */}
+        {onDebugEnd && (
+          <button onClick={onDebugEnd} style={{
+            background: 'rgba(255,0,0,0.12)', border: '1px dashed #f00', color: '#c00',
+            borderRadius: 6, padding: '2px 8px', fontSize: 10, fontFamily: 'monospace',
+            cursor: 'pointer',
+          }}>⏭ end</button>
+        )}
+
+        {/* Count pill */}
+        <div style={{
+          background: '#fff', borderRadius: 14,
+          padding: '0 16px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          textAlign: 'left',
+          height: 60,
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center',
+        }}>
+          <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>
+            {String(circleIdx).padStart(2, '0')}/30
+          </div>
+          <div style={{ fontSize: 13, color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>circles</div>
         </div>
       </div>
 
-      {/* Count pill — top right */}
+      {/* Drawing card — fills remaining space */}
       <div style={{
-        position: 'absolute', right: 14, top: 14,
-        background: '#fff', borderRadius: 14,
-        padding: '8px 16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        textAlign: 'center', zIndex: 10,
-      }}>
-        <div style={{ fontFamily: 'Caveat', fontSize: 22, color: '#1a1a1a', lineHeight: 1 }}>
-          {String(circleIdx).padStart(2, '0')}/30
-        </div>
-        <div style={{ fontSize: 9, color: '#888', fontFamily: 'system-ui', letterSpacing: 0.4 }}>circles</div>
-      </div>
-
-      {/* Drawing card */}
-      <div style={{
-        position: 'absolute', left: 14, top: 70, right: 14, bottom: 82,
+        flex: 1, margin: '14px 14px 0', minHeight: 0,
         background: '#fef48a', borderRadius: 14,
         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-        overflow: 'hidden',
+        overflow: 'hidden', position: 'relative',
       }}>
         {/* Circle # label */}
         <div style={{
@@ -436,7 +452,6 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         }}>
           #{String(circleIdx).padStart(2, '0')}
         </div>
-
         {/* Guide circle — centered, fixed size */}
         <div style={{
           position: 'absolute', inset: 0,
@@ -459,48 +474,38 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         />
       </div>
 
-      {/* Undo / redo pill — bottom left */}
-      {true && (
+      {/* Bottom bar — fixed to bottom */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', flexShrink: 0 }}>
+        {/* Undo / redo pill */}
         <div style={{
-          position: 'absolute', left: 14, bottom: 14,
           background: '#fff', borderRadius: 999,
           padding: 0, overflow: 'hidden',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           display: 'flex', alignItems: 'stretch', gap: 0,
-          zIndex: 10,
         }}>
-          <ArrowBtn label="↶" onClick={() => undoRef.current?.()} disabled={!canUndo} side="left" />
+          <ArrowBtn label={<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.75 2C5.1297 2 5.44349 2.28215 5.49315 2.64823L5.5 2.75V8.44L10.0743 3.88014C12.5163 1.43819 16.4385 1.37863 18.9526 3.70146L19.1385 3.88014C21.6415 6.38313 21.6415 10.4413 19.1385 12.9443L10.2933 21.7835C10.0003 22.0762 9.52558 22.0759 9.23269 21.783C8.93979 21.4901 8.94013 21.0151 9.23315 20.7223L18.0778 11.8836C19.995 9.96641 19.995 6.85801 18.0778 4.9408C16.2187 3.08169 13.2395 3.02535 11.3118 4.77248L11.1342 4.94156L6.562 9.5L12.25 9.50018C12.6297 9.50018 12.9435 9.78234 12.9932 10.1484L13 10.2502C13 10.6299 12.7178 10.9437 12.3518 10.9933L12.25 11.0002H4.75C4.3703 11.0002 4.05651 10.718 4.00685 10.352L4 10.2502V2.75C4 2.33579 4.33579 2 4.75 2Z" fill="currentColor"/></svg>} onClick={() => undoRef.current?.()} disabled={!canUndo} side="left" />
           <div style={{ width: 1, alignSelf: 'stretch', background: '#e0e0e0' }} />
-          <ArrowBtn label="↷" onClick={() => redoRef.current?.()} disabled={!canRedo} side="right" />
+          <ArrowBtn label={<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19.2501 2C18.8704 2 18.5566 2.28215 18.507 2.64823L18.5001 2.75V8.44L13.9258 3.88014C11.4838 1.43819 7.56165 1.37863 5.0475 3.70146L4.86162 3.88014C2.35863 6.38313 2.35863 10.4413 4.86162 12.9443L13.7068 21.7835C13.9998 22.0762 14.4745 22.0759 14.7674 21.783C15.0603 21.4901 15.06 21.0151 14.767 20.7223L5.92228 11.8836C4.00507 9.96641 4.00507 6.85801 5.92228 4.9408C7.78139 3.08169 10.7606 3.02535 12.6883 4.77248L12.8659 4.94156L17.4381 9.5L11.7501 9.50018C11.3704 9.50018 11.0566 9.78234 11.007 10.1484L11.0001 10.2502C11.0001 10.6299 11.2823 10.9437 11.6483 10.9933L11.7501 11.0002H19.2501C19.6298 11.0002 19.9436 10.718 19.9933 10.352L20.0001 10.2502V2.75C20.0001 2.33579 19.6643 2 19.2501 2Z" fill="currentColor"/></svg>} onClick={() => redoRef.current?.()} disabled={!canRedo} side="right" />
         </div>
-      )}
 
-      {/* Done button — bottom right */}
-      <button
-        onClick={onDone}
-        style={{
-          position: 'absolute', right: 14, bottom: 14,
-          background: '#1a1a1a', color: '#fef48a',
-          border: 'none', cursor: 'pointer',
-          padding: '12px 28px', borderRadius: 999,
-          fontSize: 24, fontWeight: 700,
-          boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
-          zIndex: 10, transition: 'transform 0.1s, box-shadow 0.1s',
-        }}
-        onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
-        onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
-        onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
-      >
-        {circleIdx >= TOTAL ? 'finish ✓' : 'next →'}
-      </button>
-      {onDebugEnd && (
-        <button onClick={onDebugEnd} style={{
-          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(255,0,0,0.12)', border: '1px dashed #f00', color: '#c00',
-          borderRadius: 6, padding: '2px 8px', fontSize: 10, fontFamily: 'monospace',
-          cursor: 'pointer', zIndex: 20,
-        }}>⏭ end</button>
-      )}
+        {/* Next button */}
+        <button
+          onClick={onDone}
+          style={{
+            background: '#1a1a1a', color: '#fef48a',
+            border: 'none', cursor: 'pointer',
+            padding: '12px 28px', borderRadius: 999,
+            fontSize: 24, fontWeight: 700,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+            transition: 'transform 0.1s, box-shadow 0.1s',
+          }}
+          onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
+          onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
+          onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)'; }}
+        >
+          {circleIdx >= TOTAL ? 'finish ✓' : 'next →'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -512,13 +517,131 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
   const elapsed = TOTAL_SECS - timeLeft;
   const cols = Math.min(count, 5);
 
-  const handleShare = async () => {
-    haptic([50, 30, 50]);
-    const text = `I drew ${count} circles in ${fmt(elapsed)}! 🎨`;
-    if (navigator.share) {
-      try { await navigator.share({ title: '30 Circles', text }); return; } catch (_) {}
+  const handleDownload = async () => {
+    haptic([50]);
+
+    const cols = 5;
+    const rows = Math.ceil(count / cols);
+    const cellSize = 72;
+    const gap = 8;
+    const cardPad = 28;
+    const gridW = cols * cellSize + (cols - 1) * gap;
+    const gridH = rows * cellSize + (rows - 1) * gap;
+    const cardW = gridW + cardPad * 2;
+    const headerH = 83;
+    const cardH = cardPad + headerH + gridH + cardPad;
+    const margin = 60;
+    const canvasW = cardW + margin * 2;
+    const canvasH = cardH + margin * 2;
+
+    const dpr = 2;
+    const off = document.createElement('canvas');
+    off.width = canvasW * dpr;
+    off.height = canvasH * dpr;
+    const ctx = off.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Dot background
+    ctx.fillStyle = '#fffaf0';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    for (let x = 8; x < canvasW; x += 16) {
+      for (let y = 8; y < canvasH; y += 16) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
-    try { await navigator.clipboard.writeText(text); } catch (_) {}
+
+    const cardX = margin;
+    const cardY = margin;
+
+    // Rotated card
+    ctx.save();
+    ctx.translate(cardX + cardW / 2, cardY + cardH / 2);
+    ctx.rotate(-Math.PI / 180);
+    ctx.translate(-(cardX + cardW / 2), -(cardY + cardH / 2));
+
+    // Shadow + white card
+    ctx.shadowColor = 'rgba(0,0,0,0.11)';
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = '#fff';
+    const rr = 16;
+    ctx.beginPath();
+    ctx.moveTo(cardX + rr, cardY);
+    ctx.lineTo(cardX + cardW - rr, cardY);
+    ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + rr);
+    ctx.lineTo(cardX + cardW, cardY + cardH - rr);
+    ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - rr, cardY + cardH);
+    ctx.lineTo(cardX + rr, cardY + cardH);
+    ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - rr);
+    ctx.lineTo(cardX, cardY + rr);
+    ctx.quadraticCurveTo(cardX, cardY, cardX + rr, cardY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+    // Title
+    await document.fonts.load('700 36px Caveat');
+    ctx.font = '700 36px Caveat, cursive';
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillText('brain: stretched ✨', cardX + cardPad, cardY + cardPad + 36);
+
+    // Subtitle
+    ctx.font = '15px system-ui, sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.fillText(`${count} ${count === 1 ? 'circle' : 'circles'} · ${fmt(elapsed)}`, cardX + cardPad, cardY + cardPad + 62);
+
+    // Preload drawing images
+    const imgEls = await Promise.all(
+      Array.from({ length: count }, (_, i) =>
+        drawings[i]
+          ? new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = drawings[i]; })
+          : Promise.resolve(null)
+      )
+    );
+
+    const gridTop = cardY + cardPad + headerH;
+    const imgR = cellSize * 0.9;
+    const blobColors = ['#fef48a', '#ffc1d8', '#c8f0d0', '#b8e0ff', '#ffd4a8'];
+
+    for (let i = 0; i < count; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = cardX + cardPad + col * (cellSize + gap) + cellSize / 2;
+      const cy = gridTop + row * (cellSize + gap) + cellSize / 2;
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = blobColors[i % blobColors.length];
+      ctx.beginPath();
+      ctx.arc(cx, cy, cellSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (imgEls[i]) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, imgR, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(imgEls[i], cx - imgR, cy - imgR, imgR * 2, imgR * 2);
+        ctx.restore();
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#1F1F1F';
+        ctx.lineWidth = 7 * (cellSize / 42);
+        ctx.beginPath();
+        ctx.arc(cx, cy, cellSize * 0.45, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+
+    const a = document.createElement('a');
+    a.download = '30-circles.png';
+    a.href = off.toDataURL('image/png');
+    a.click();
   };
 
   return (
@@ -580,8 +703,8 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         zIndex: 10,
       }}>
         {[
-          { label: 'do it again', onClick: onRestart, bg: '#fff', color: '#1a1a1a', border: '2px solid #1a1a1a' },
-          { label: 'share ↗',    onClick: handleShare, bg: '#1a1a1a', color: '#fef48a', border: 'none' },
+          { label: 'do it again',  onClick: onRestart,        bg: '#fff',    color: '#1a1a1a', border: '2px solid #1a1a1a' },
+          { label: <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>download <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18.2498 20.5009C18.664 20.5008 19 20.8365 19 21.2507C19 21.6649 18.6644 22.0008 18.2502 22.0009L5.25022 22.0047C4.836 22.0048 4.5 21.6691 4.5 21.2549C4.5 20.8407 4.83557 20.5048 5.24978 20.5047L18.2498 20.5009ZM11.6482 2.01271L11.75 2.00586C12.1297 2.00586 12.4435 2.28801 12.4932 2.65409L12.5 2.75586L12.499 16.4409L16.2208 12.7205C16.4871 12.4543 16.9038 12.4301 17.1974 12.648L17.2815 12.7206C17.5477 12.9869 17.5719 13.4036 17.354 13.6972L17.2814 13.7813L12.2837 18.7779C12.0176 19.044 11.6012 19.0683 11.3076 18.8507L11.2235 18.7782L6.22003 13.7816C5.92694 13.4889 5.92661 13.014 6.21931 12.7209C6.48539 12.4545 6.90204 12.43 7.1958 12.6477L7.27997 12.7202L10.999 16.4339L11 2.75586C11 2.37616 11.2822 2.06237 11.6482 2.01271Z" fill="currentColor"/></svg></span>, onClick: handleDownload, bg: '#1a1a1a', color: '#fef48a', border: 'none' },
         ].map(({ label, onClick, bg, color, border }) => (
           <button key={label} onClick={onClick} style={{
             width: 160, background: bg, color, border,
