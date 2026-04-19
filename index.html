@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <title>30 Circles</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -406,7 +407,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
               style={{ transition: 'stroke-dasharray 0.9s linear' }}
             />
           </svg>
-          <div style={{ textAlign: 'left' }}>
+          <div style={{ textAlign: 'left', width: 40 }}>
             <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>{fmt(timeLeft)}</div>
             <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>left</div>
           </div>
