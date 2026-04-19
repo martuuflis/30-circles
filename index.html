@@ -330,16 +330,16 @@ function IntroScreen({ onStart }) {
         maxWidth: 340, width: '90%',
         position: 'relative', zIndex: 10,
       }}>
-        <div style={{ fontFamily: 'Caveat', fontSize: 46, color: '#2a2416', lineHeight: 0.95, fontWeight: 700 }}>
-          ready to<br/>stretch<br/>your brain?
+        <div style={{ fontFamily: 'Caveat', fontSize: 46, color: '#2a2416', lineHeight: 1.05, fontWeight: 700 }}>
+          30 circle<br/>challenge
         </div>
-        <div style={{ marginTop: 18, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
-          30 circles · 3 minutes<br/>no wrong answers
+        <div style={{ marginTop: 8, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
+          turn as many blank circles as possible into recognizable objects in 3 minutes — ready to spark your creativity?
         </div>
         <button
           onClick={() => { haptic([30]); onStart(); }}
           style={{
-            marginTop: 24, width: '100%',
+            marginTop: 32, width: '100%',
             background: '#1a1a1a', color: '#fef48a',
             border: 'none', cursor: 'pointer',
             padding: '14px 0', borderRadius: 999,
@@ -350,7 +350,7 @@ function IntroScreen({ onStart }) {
           onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
           onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)'; }}
         >
-          let's go ✏️
+          let's start!
         </button>
       </div>
     </div>
@@ -619,12 +619,15 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
     await document.fonts.load('700 36px Caveat');
     ctx.font = '700 36px Caveat, cursive';
     ctx.fillStyle = '#1a1a1a';
-    ctx.fillText('brain: stretched ✨', cardX + cardPad, cardY + cardPad + 36);
+    ctx.fillText('creativity sparkled ✨', cardX + cardPad, cardY + cardPad + 36);
 
     // Subtitle
     ctx.font = '15px system-ui, sans-serif';
     ctx.fillStyle = '#666';
-    ctx.fillText(`${count} ${count === 1 ? 'circle' : 'circles'} · ${fmt(elapsed)}`, cardX + cardPad, cardY + cardPad + 62);
+    const subtitleText = count < 30
+      ? `you drew ${count} ${count === 1 ? 'circle' : 'circles'} in 3 minutes, well done!`
+      : `you drew ${count} circles in 3 minutes, challenge completed!`;
+    ctx.fillText(subtitleText, cardX + cardPad, cardY + cardPad + 62);
 
     // Preload drawing images
     const imgEls = await Promise.all(
@@ -699,10 +702,12 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         transform: 'rotate(-1deg)',
       }}>
         <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
-          brain: stretched ✨
+          creativity sparkled ✨
         </div>
         <div style={{ fontSize: 18, color: '#666', fontFamily: 'Caveat', lineHeight: 1.5 }}>
-          {count} {count === 1 ? 'circle' : 'circles'} · {fmt(elapsed)}
+          {count < 30
+            ? `you drew ${count} ${count === 1 ? 'circle' : 'circles'} in 3 minutes, well done!`
+            : `you drew ${count} circles in 3 minutes, challenge completed!`}
         </div>
 
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
