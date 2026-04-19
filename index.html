@@ -24,6 +24,14 @@
       from { transform: translateX(110%); }
       to   { transform: translateX(0); }
     }
+  .end-card::-webkit-scrollbar { display: none; }
+  @media (max-height: 700px) {
+    .end-outer { padding: 32px 24px 48px !important; }
+    .drawing-card { margin-top: 8px !important; }
+  }
+  @media (max-width: 500px) {
+    .end-outer { padding-left: 16px !important; padding-right: 16px !important; }
+  }
   </style>
 </head>
 <body>
@@ -331,10 +339,10 @@ function IntroScreen({ onStart }) {
         position: 'relative', zIndex: 10,
       }}>
         <div style={{ fontFamily: 'Caveat', fontSize: 46, color: '#2a2416', lineHeight: 1.05, fontWeight: 700 }}>
-          30 circle<br/>challenge
+          ready to spark<br/>your creativity?
         </div>
         <div style={{ marginTop: 8, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
-          turn as many blank circles as possible into recognizable objects in 3 minutes — ready to spark your creativity?
+          take on the 30 circles challenge! — turn as many blank circles as possible into recognizable objects in 3 minutes
         </div>
         <button
           onClick={() => { haptic([30]); onStart(); }}
@@ -462,7 +470,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         flex: 1, margin: '14px 14px 0', minHeight: 0,
         borderRadius: 14, overflow: 'hidden', position: 'relative',
         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-      }}>
+      }} className="drawing-card">
         {/* Current card — slides out left */}
         <div style={{
           position: 'absolute', inset: 0,
@@ -686,23 +694,24 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
 
   return (
     <div style={{
-      width: '100vw', height: '100dvh', ...DOT_BG,
+      width: '100%', height: '100dvh', ...DOT_BG,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px 24px 100px', overflow: 'hidden',
-    }}>
+      padding: '80px 24px 100px', overflow: 'hidden',
+    }} className="end-outer">
       {[['#ff6b6b', '5vw', '5vh'], ['#3a9eea', '88vw', '8vh'], ['#f0b840', '6vw', '88vh'], ['#70c27b', '86vw', '84vh']].map(([c, l, t], i) => (
         <div key={i} style={{ position: 'fixed', left: l, top: t, width: 12, height: 12, borderRadius: 12, background: c, opacity: 0.8 }}/>
       ))}
 
       <div style={{
-        maxWidth: 440, width: '100%',
+        maxWidth: 500, width: '90%',
+        maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none',
         background: '#fff', borderRadius: 16,
         boxShadow: '0 8px 36px rgba(0,0,0,0.11)',
         padding: '28px 28px 24px',
         transform: 'rotate(-1deg)',
-      }}>
+      }} className="end-card">
         <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
-          creativity sparkled ✨
+          creativity <span style={{whiteSpace: 'nowrap'}}>sparkled ✨</span>
         </div>
         <div style={{ fontSize: 18, color: '#666', fontFamily: 'Caveat', lineHeight: 1.5 }}>
           {count < 30
