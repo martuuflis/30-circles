@@ -342,7 +342,7 @@ function IntroScreen({ onStart }) {
           ready to spark<br/>your creativity?
         </div>
         <div style={{ marginTop: 8, fontFamily: 'Caveat', fontSize: 20, color: '#6a5a2a', lineHeight: 1.4 }}>
-          take on the 30 circles challenge! — turn as many blank circles as possible into recognizable objects in 3 minutes
+          take on the 30 circles challenge!<br/>turn as many blank circles as possible into recognizable objects in 3 minutes
         </div>
         <button
           onClick={() => { haptic([30]); onStart(); }}
@@ -390,7 +390,7 @@ function ArrowBtn({ label, onClick, disabled, side }) {
 
 // ─── Drawing Screen ───────────────────────────────────────────────────────────
 
-function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, undoRef, redoRef, captureRef, onDebugEnd }) {
+function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, undoRef, redoRef, captureRef }) {
   const pct = timeLeft / TOTAL_SECS;
   const R = 9;
   const circ = 2 * Math.PI * R;
@@ -440,14 +440,6 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
           </div>
         </div>
 
-        {/* Debug button */}
-        {onDebugEnd && (
-          <button onClick={onDebugEnd} style={{
-            background: 'rgba(255,0,0,0.12)', border: '1px dashed #f00', color: '#c00',
-            borderRadius: 6, padding: '2px 8px', fontSize: 10, fontFamily: 'monospace',
-            cursor: 'pointer',
-          }}>⏭ end</button>
-        )}
 
         {/* Count pill */}
         <div style={{
@@ -830,7 +822,7 @@ function App() {
     setDrawings([]);
   };
 
-  if (screen === 'intro') return <IntroScreen onStart={handleStart} onDebugEnd={() => setScreen('done')}/>;
+  if (screen === 'intro') return <IntroScreen onStart={handleStart}/>;
   if (screen === 'drawing') return (
     <DrawingScreen
       circleIdx={circleIdx}
@@ -842,7 +834,6 @@ function App() {
       undoRef={undoRef}
       redoRef={redoRef}
       captureRef={captureRef}
-      onDebugEnd={() => { const d = captureRef.current?.(); if (d) setDrawings(prev => [...prev, d]); setScreen('done'); }}
     />
   );
   return (
