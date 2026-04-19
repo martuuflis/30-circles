@@ -35,6 +35,7 @@
     }
   .end-card::-webkit-scrollbar { display: none; }
   .end-card { -webkit-overflow-scrolling: touch; }
+  .drawing-card { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   @media (max-height: 700px) {
     .end-outer { padding: 32px 24px 48px !important; }
     .drawing-card { margin-top: 8px !important; }
@@ -43,8 +44,8 @@
     .end-outer { padding-left: 16px !important; padding-right: 16px !important; }
   }
   @media (min-width: 541px) {
-    .end-buttons { flex-direction: row !important; }
-    .end-buttons button { flex: 1; }
+    .end-buttons { flex-direction: row !important; justify-content: center; }
+    .end-buttons button { flex: 1; max-width: 280px; }
     .end-outer { padding-bottom: 110px !important; }
   }
   </style>
@@ -318,6 +319,7 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
         width: '100%', height: '100%',
         display: 'block', touchAction: 'none',
         cursor: tool === 'eraser' ? 'cell' : 'crosshair',
+        userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
         zIndex: 2,
       }}
     />
@@ -642,8 +644,8 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
     ctx.font = '400 20px Caveat, cursive';
     ctx.fillStyle = '#666';
     const subtitleText = count < 30
-      ? `you drew ${count} ${count === 1 ? 'circle' : 'circles'} in 3 minutes, well done!`
-      : `you drew ${count} circles in 3 minutes, challenge completed!`;
+      ? `You turned ${count} ${count === 1 ? 'circle' : 'circles'} into objects in 3 minutes, well done!`
+      : `Whoohoo! You turned all 30 circles into objects in 3 minutes.`;
     ctx.fillText(subtitleText, cardX + cardPad, cardY + cardPad + 62);
 
     // Preload drawing images
@@ -757,8 +759,8 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
           {count === 0
             ? "Looks like the timer ran out before you started. Your next round is where it all starts, give it a go!"
             : count < 30
-              ? `You made ${count} ${count === 1 ? 'drawing' : 'drawings'} in 3 minutes, well done!`
-              : `You made ${count} drawings in 3 minutes, challenge completed!`}
+              ? `You turned ${count} ${count === 1 ? 'circle' : 'circles'} into objects in 3 minutes, well done!`
+              : `Whoohoo! You turned all 30 circles into objects in 3 minutes.`}
         </div>
 
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
