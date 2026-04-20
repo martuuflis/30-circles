@@ -33,6 +33,38 @@
       from { transform: translateX(110%); }
       to   { transform: translateX(0); }
     }
+    @keyframes introCardExitLeft {
+      from { transform: rotate(-2deg) translateX(0); }
+      to   { transform: rotate(-2deg) translateX(-110vw); }
+    }
+    @keyframes introCircleExitLeft {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-110vw); }
+    }
+    @keyframes drawEnterRight {
+      from { transform: translateX(110vw); }
+      to   { transform: translateX(0); }
+    }
+    @keyframes exitDown {
+      from { transform: translateY(0); }
+      to   { transform: translateY(110vh); }
+    }
+    @keyframes enterFromTop {
+      from { transform: translateY(-110vh); }
+      to   { transform: translateY(0); }
+    }
+    @keyframes introCardEnterFromTop {
+      from { transform: rotate(-2deg) translateY(-110vh); }
+      to   { transform: rotate(-2deg) translateY(0); }
+    }
+    @keyframes endCardEnterRight {
+      from { transform: rotate(-1deg) translateX(110vw); }
+      to   { transform: rotate(-1deg) translateX(0); }
+    }
+    @keyframes endCardExitDown {
+      from { transform: rotate(-1deg) translateY(0); }
+      to   { transform: rotate(-1deg) translateY(110vh); }
+    }
   .end-card::-webkit-scrollbar { display: none; }
   .end-card { -webkit-overflow-scrolling: touch; }
   .drawing-card { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -328,7 +360,7 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
 
 // ─── Intro ────────────────────────────────────────────────────────────────────
 
-function IntroScreen({ onStart }) {
+function IntroScreen({ onStart, isLeaving, enterFromTop }) {
   const decorCircles = [
     { color: '#c8f0d0', size: 90, seed: 3,  top: 'calc(8% - 40px)',    right: '12%', rotate: '8deg',  kind: 'face'   },
     { color: '#b8e0ff', size: 76, seed: 6,  bottom: 'calc(20% - 80px)', left: '8%',  rotate: '-5deg', kind: 'planet' },
@@ -342,10 +374,17 @@ function IntroScreen({ onStart }) {
       position: 'relative', overflow: 'hidden',
     }}>
       {decorCircles.map((c, i) => (
-        <DecorCircle key={i} {...c} style={{
+        <div key={i} style={{
+          position: 'absolute',
           top: c.top, right: c.right, bottom: c.bottom, left: c.left,
-          transform: `rotate(${c.rotate})`, opacity: 0.88,
-        }}/>
+          width: c.size, height: c.size,
+          animation: isLeaving ? `introCircleExitLeft 0.45s cubic-bezier(0.4,0,1,0.5) ${0.1 + i * 0.06}s both` : enterFromTop ? `enterFromTop 0.55s cubic-bezier(0.34,1.56,0.64,1) ${0.08 + i * 0.06}s both` : 'none',
+        }}>
+          <DecorCircle {...c} style={{
+            top: 0, left: 0,
+            transform: `rotate(${c.rotate})`, opacity: 0.88,
+          }}/>
+        </div>
       ))}
 
       <div style={{
@@ -354,6 +393,7 @@ function IntroScreen({ onStart }) {
         boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
         maxWidth: 340, width: '90%',
         position: 'relative', zIndex: 10,
+        animation: isLeaving ? 'introCardExitLeft 0.45s cubic-bezier(0.4,0,1,0.5) both' : enterFromTop ? 'introCardEnterFromTop 0.55s cubic-bezier(0.34,1.56,0.64,1) both' : 'none',
       }}>
         <div style={{ fontFamily: 'Caveat', fontSize: 46, color: '#2a2416', lineHeight: 1.05, fontWeight: 700 }}>
           Ready to spark<br/>your creativity?
@@ -362,7 +402,7 @@ function IntroScreen({ onStart }) {
           Take on the 30 circles challenge!<br/>Turn as many blank circles as possible into recognizable objects in 3 minutes
         </div>
         <button
-          onClick={() => { haptic([30]); onStart(); }}
+          onClick={() => { if (!isLeaving) { haptic([30]); onStart(); } }}
           style={{
             marginTop: 32, width: '100%',
             background: '#1a1a1a', color: '#fef48a',
@@ -372,7 +412,7 @@ function IntroScreen({ onStart }) {
             boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
             transition: 'transform 0.1s, box-shadow 0.1s',
           }}
-          onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; }}
+          onPointerDown={e => { if (!isLeaving) { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.15)'; } }}
           onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)'; }}
         >
           Let's start!
@@ -407,7 +447,7 @@ function ArrowBtn({ label, onClick, disabled, side }) {
 
 // ─── Drawing Screen ───────────────────────────────────────────────────────────
 
-function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, undoRef, redoRef, captureRef }) {
+function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, undoRef, redoRef, captureRef, isLeaving }) {
   const pct = timeLeft / TOTAL_SECS;
   const R = 9;
   const circ = 2 * Math.PI * R;
@@ -421,6 +461,12 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
   useEffect(() => { setCanUndo(false); setCanRedo(false); }, [canvasKey]);
 
   const [isPushing, setIsPushing] = useState(false);
+  const [animIn, setAnimIn] = useState(true);
+
+  useEffect(() => {
+    const id = setTimeout(() => setAnimIn(false), 900);
+    return () => clearTimeout(id);
+  }, []);
 
   const handleNext = () => {
     if (isPushing) return;
@@ -435,7 +481,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
     <div style={{ width: '100vw', height: '100dvh', ...DOT_BG, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 14px 0', flexShrink: 0, position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 14px 0', flexShrink: 0, position: 'relative', animation: isLeaving ? 'introCircleExitLeft 0.45s cubic-bezier(0.4,0,1,0.5) both' : animIn ? 'drawEnterRight 0.55s cubic-bezier(0.34,1.56,0.64,1) both' : 'none' }}>
         {/* Timer pill */}
         <div style={{
           background: '#fff', borderRadius: 14,
@@ -480,6 +526,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         flex: 1, margin: '14px 14px 0', minHeight: 0,
         borderRadius: 14, overflow: 'hidden', position: 'relative',
         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        animation: isLeaving ? 'introCircleExitLeft 0.45s cubic-bezier(0.4,0,1,0.5) 0.06s both' : animIn ? 'drawEnterRight 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.09s both' : 'none',
       }} className="drawing-card">
         {/* Current card — slides out left */}
         <div style={{
@@ -526,7 +573,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
       </div>
 
       {/* Bottom bar — fixed to bottom */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', paddingBottom: 'max(14px, calc(14px + env(safe-area-inset-bottom)))', flexShrink: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', paddingBottom: 'max(14px, calc(14px + env(safe-area-inset-bottom)))', flexShrink: 0, animation: isLeaving ? 'introCircleExitLeft 0.45s cubic-bezier(0.4,0,1,0.5) 0.12s both' : animIn ? 'drawEnterRight 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.18s both' : 'none' }}>
         {/* Undo / redo pill */}
         <div style={{
           background: '#fff', borderRadius: 999,
@@ -563,7 +610,13 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
 
 // ─── End Screen ───────────────────────────────────────────────────────────────
 
-function EndScreen({ count, timeLeft, drawings, onRestart }) {
+function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
+  const [animIn, setAnimIn] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setAnimIn(false), 900);
+    return () => clearTimeout(id);
+  }, []);
+
   const colors = CARD_COLORS;
   const elapsed = TOTAL_SECS - timeLeft;
   const cols = Math.min(count, 5);
@@ -749,6 +802,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         boxShadow: '0 8px 36px rgba(0,0,0,0.11)',
         padding: '28px 28px 24px',
         transform: 'rotate(-1deg)',
+        animation: isLeaving ? 'endCardExitDown 0.45s cubic-bezier(0.4,0,1,0.5) both' : animIn ? 'endCardEnterRight 0.55s cubic-bezier(0.34,1.56,0.64,1) both' : 'none',
       }} className="end-card">
         <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
           {count === 0
@@ -796,6 +850,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
         position: 'fixed', bottom: 'max(20px, calc(20px + env(safe-area-inset-bottom)))', left: 0, right: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '0 20px',
         zIndex: 10,
+        animation: isLeaving ? 'exitDown 0.45s cubic-bezier(0.4,0,1,0.5) 0.07s both' : animIn ? 'drawEnterRight 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both' : 'none',
       }} className="end-buttons">
         {[
           { label: 'Try again', onClick: onRestart, bg: '#fff', color: '#1a1a1a', border: '2px solid #1a1a1a', width: '100%' },
@@ -822,6 +877,10 @@ function EndScreen({ count, timeLeft, drawings, onRestart }) {
 
 function App() {
   const [screen, setScreen] = useState('intro');
+  const [isStarting, setIsStarting] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [introEnterFromTop, setIntroEnterFromTop] = useState(false);
   const [circleIdx, setCircleIdx] = useState(1);
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECS);
   const [running, setRunning] = useState(false);
@@ -839,7 +898,8 @@ function App() {
       const dataUrl = captureRef.current?.();
       if (dataUrl) setDrawings(d => [...d, dataUrl]);
       haptic([100, 50, 100, 50, 200]);
-      setScreen('done');
+      setIsFinishing(true);
+      setTimeout(() => { setScreen('done'); setIsFinishing(false); }, 600);
       return;
     }
     const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
@@ -847,8 +907,12 @@ function App() {
   }, [running, timeLeft]);
 
   const handleStart = () => {
-    setScreen('drawing');
-    setRunning(true);
+    setIsStarting(true);
+    setTimeout(() => {
+      setScreen('drawing');
+      setRunning(true);
+      setIsStarting(false);
+    }, 750);
   };
 
   const handleDone = () => {
@@ -857,7 +921,8 @@ function App() {
     setDrawings(d => dataUrl ? [...d, dataUrl] : d);
     if (circleIdx >= TOTAL) {
       setRunning(false);
-      setScreen('done');
+      setIsFinishing(true);
+      setTimeout(() => { setScreen('done'); setIsFinishing(false); }, 600);
       return;
     }
     setCircleIdx(i => i + 1);
@@ -866,16 +931,21 @@ function App() {
   };
 
   const handleRestart = () => {
-    setScreen('intro');
-    setCircleIdx(1);
-    setTimeLeft(TOTAL_SECS);
-    setRunning(false);
-    setTool('pen');
-    setCanvasKey(k => k + 1);
-    setDrawings([]);
+    setIsRestarting(true);
+    setTimeout(() => {
+      setScreen('intro');
+      setIntroEnterFromTop(true);
+      setIsRestarting(false);
+      setCircleIdx(1);
+      setTimeLeft(TOTAL_SECS);
+      setRunning(false);
+      setTool('pen');
+      setCanvasKey(k => k + 1);
+      setDrawings([]);
+    }, 600);
   };
 
-  if (screen === 'intro') return <IntroScreen onStart={handleStart}/>;
+  if (screen === 'intro') return <IntroScreen onStart={handleStart} isLeaving={isStarting} enterFromTop={introEnterFromTop}/>;
   if (screen === 'drawing') return (
     <DrawingScreen
       circleIdx={circleIdx}
@@ -887,6 +957,7 @@ function App() {
       undoRef={undoRef}
       redoRef={redoRef}
       captureRef={captureRef}
+      isLeaving={isFinishing}
     />
   );
   return (
@@ -895,6 +966,7 @@ function App() {
       timeLeft={timeLeft}
       drawings={drawings}
       onRestart={handleRestart}
+      isLeaving={isRestarting}
     />
   );
 }
