@@ -559,7 +559,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         </div>
 
         {/* Next card placeholder — slides in from right simultaneously */}
-        {isPushing && (
+        {isPushing && circleIdx < TOTAL && (
           <div style={{
             position: 'absolute', inset: 0,
             background: CARD_COLORS[circleIdx % CARD_COLORS.length], borderRadius: 14, overflow: 'hidden',
