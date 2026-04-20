@@ -475,6 +475,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
 
   const handleNext = () => {
     if (isPushing) return;
+    if (circleIdx >= TOTAL) { onDone(); return; }
     setIsPushing(true);
     setTimeout(() => {
       onDone();
@@ -559,7 +560,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
         </div>
 
         {/* Next card placeholder — slides in from right simultaneously */}
-        {isPushing && circleIdx < TOTAL && (
+        {isPushing && (
           <div style={{
             position: 'absolute', inset: 0,
             background: CARD_COLORS[circleIdx % CARD_COLORS.length], borderRadius: 14, overflow: 'hidden',
