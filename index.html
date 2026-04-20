@@ -80,6 +80,11 @@
     .end-buttons button { flex: 1; max-width: 280px; }
     .end-outer { padding-bottom: 110px !important; }
   }
+  .end-drawing-circle { width: 180%; height: 180%; }
+  @media (max-width: 500px) {
+    .end-drawing-circle { width: 130% !important; height: 130% !important; }
+    .end-grid { gap: 4px !important; }
+  }
   </style>
 </head>
 <body>
@@ -819,7 +824,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
               : `Whoohoo! You turned all 30 circles into objects in 3 minutes.`}
         </div>
 
-        <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+        <div className="end-grid" style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
           {Array.from({ length: count }).map((_, i) => (
             <div key={i} style={{ aspectRatio: '1', position: 'relative' }}>
               {/* colored blob — 126% of cell, centered */}
@@ -830,10 +835,9 @@ function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
                 borderRadius: '50%',
               }}/>
               {/* drawing circle — centered on blob, slightly smaller */}
-              <div style={{
+              <div className="end-drawing-circle" style={{
                 position: 'absolute',
                 top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                width: '180%', height: '180%',
                 borderRadius: '50%', overflow: 'hidden',
               }}>
                 {drawings[i]
