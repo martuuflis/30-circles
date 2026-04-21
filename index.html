@@ -527,7 +527,7 @@ function DrawingScreen({ circleIdx, timeLeft, tool, setTool, onDone, canvasKey, 
           display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center',
         }}>
           <div style={{ fontFamily: 'Caveat', fontSize: 24, color: '#1a1a1a', lineHeight: 1 }}>
-            {String(circleIdx).padStart(2, '0')}/30
+            {String(circleIdx + (isPushing ? 1 : 0)).padStart(2, '0')}/30
           </div>
           <div style={{ fontSize: 16, lineHeight: '16px', color: '#888', fontFamily: 'Caveat', letterSpacing: 0.4 }}>Circles</div>
         </div>
