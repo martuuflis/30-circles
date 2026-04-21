@@ -14,6 +14,7 @@
   <meta name="twitter:title" content="30 Circles - ready to spark creativity?"/>
   <meta name="twitter:description" content="Turn as many circles as you can into recognizable objects in 3 minutes."/>
   <meta name="twitter:image" content="https://martuuflis.github.io/30-circles/favicon.png"/>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="a13281e5-6026-4245-b2a3-e6337d58c024"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
@@ -87,8 +88,10 @@
     .end-card { max-height: none !important; overflow-y: visible !important; }
   }
   .end-drawing-circle { width: 180%; height: 180%; }
-  @media (max-width: 500px) {
+  @media (max-width: 768px) {
     .end-drawing-circle { width: 130% !important; height: 130% !important; }
+  }
+  @media (max-width: 500px) {
     .end-grid { gap: 4px !important; }
   }
   </style>
@@ -723,7 +726,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
     );
 
     const gridTop = cardY + cardPad + headerH;
-    const imgR = cellSize * 0.9;
+    const imgR = cellSize / 2;
     const blobColors = ['#fef48a', '#ffc1d8', '#c8f0d0', '#b8e0ff', '#ffd4a8'];
 
     for (let i = 0; i < count; i++) {
@@ -772,12 +775,14 @@ function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
   };
 
   const handleDownload = async () => {
+    window.umami?.track('result_downloaded');
     haptic([50]);
     const off = await buildShareCanvas();
     triggerDownload(off);
   };
 
   const handleShare = async () => {
+    window.umami?.track('result_shared');
     haptic([50]);
     const off = await buildShareCanvas();
     const blob = await new Promise(res => off.toBlob(res, 'image/png'));
@@ -910,6 +915,7 @@ function App() {
       setRunning(false);
       const dataUrl = captureRef.current?.();
       if (dataUrl) setDrawings(d => [...d, dataUrl]);
+      window.umami?.track('game_finished', { circles: circleIdx, reason: 'timer' });
       haptic([100, 50, 100, 50, 200]);
       setIsFinishing(true);
       setTimeout(() => { setScreen('done'); setIsFinishing(false); }, 600);
@@ -920,6 +926,7 @@ function App() {
   }, [running, timeLeft]);
 
   const handleStart = () => {
+    window.umami?.track('game_started');
     setIsStarting(true);
     setTimeout(() => {
       setScreen('drawing');
@@ -934,6 +941,7 @@ function App() {
     setDrawings(d => dataUrl ? [...d, dataUrl] : d);
     if (circleIdx >= TOTAL) {
       setRunning(false);
+      window.umami?.track('game_finished', { circles: TOTAL, reason: 'completed' });
       setIsFinishing(true);
       setTimeout(() => { setScreen('done'); setIsFinishing(false); }, 600);
       return;
@@ -944,6 +952,7 @@ function App() {
   };
 
   const handleRestart = () => {
+    window.umami?.track('game_restarted');
     setIsRestarting(true);
     setTimeout(() => {
       setScreen('intro');
