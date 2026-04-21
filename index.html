@@ -221,6 +221,7 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
   const canvasRef = useRef(null);
   const drawing = useRef(false);
   const lastPos = useRef(null);
+  const startPos = useRef(null);
   const hist = useRef([]);
   const histIdx = useRef(-1);
   const toolRef = useRef(tool);
@@ -315,15 +316,18 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
     e.currentTarget.setPointerCapture(e.pointerId);
     const pos = getPos(e);
     lastPos.current = pos;
+    startPos.current = pos;
     const ctx = canvasRef.current.getContext('2d');
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
     if (toolRef.current === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.lineWidth = 28;
+      ctx.fillStyle = 'rgba(0,0,0,1)';
     } else {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = '#1F1F1F';
+      ctx.fillStyle = '#1F1F1F';
       ctx.lineWidth = 4;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -350,6 +354,15 @@ function DrawingCanvas({ tool, undoRef, redoRef, captureRef, circleSeed, onHisto
   const onPointerUp = () => {
     if (!drawing.current) return;
     drawing.current = false;
+    const dp = lastPos.current;
+    const sp = startPos.current;
+    const dist = Math.hypot(dp.x - sp.x, dp.y - sp.y);
+    if (dist < 4) {
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
     saveSnap();
   };
 
