@@ -78,7 +78,13 @@
   @media (min-width: 541px) {
     .end-buttons { flex-direction: row !important; justify-content: center; }
     .end-buttons button { flex: 1; max-width: 280px; }
-    .end-outer { padding-bottom: 110px !important; }
+    .end-outer {
+      padding-bottom: 110px !important;
+      flex-direction: column !important; justify-content: flex-start !important;
+      overflow-x: hidden !important; overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    .end-card { max-height: none !important; overflow-y: visible !important; }
   }
   .end-drawing-circle { width: 180%; height: 180%; }
   @media (max-width: 500px) {
@@ -737,7 +743,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
         ctx.beginPath();
         ctx.arc(cx, cy, imgR, 0, Math.PI * 2);
         ctx.clip();
-        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalCompositeOperation = 'source-over';
         const iw = imgEls[i].naturalWidth, ih = imgEls[i].naturalHeight;
         const scale = Math.max((imgR * 2) / iw, (imgR * 2) / ih);
         const sw = (imgR * 2) / scale, sh = (imgR * 2) / scale;
@@ -815,7 +821,7 @@ function EndScreen({ count, timeLeft, drawings, onRestart, isLeaving }) {
         <div style={{ fontFamily: 'Caveat', fontSize: 36, color: '#1a1a1a', lineHeight: 1, marginBottom: 6 }}>
           {count === 0
             ? 'No drawings yet!'
-            : <>Creativity <span style={{whiteSpace: 'nowrap'}}>sparkled ✨</span></>}
+            : <>creativity <span style={{whiteSpace: 'nowrap'}}>sparkled ✨</span></>}
         </div>
         <div style={{ fontSize: 18, color: '#666', fontFamily: 'Caveat', lineHeight: 1.5 }}>
           {count === 0
