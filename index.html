@@ -937,6 +937,7 @@ function App() {
 
   const handleDone = () => {
     haptic([40]);
+    window.umami?.track('circle_drawn', { circle: circleIdx });
     const dataUrl = captureRef.current?.();
     setDrawings(d => dataUrl ? [...d, dataUrl] : d);
     if (circleIdx >= TOTAL) {
