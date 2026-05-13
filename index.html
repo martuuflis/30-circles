@@ -54,6 +54,10 @@
       from { transform: translateY(-110vh); }
       to   { transform: translateY(0); }
     }
+    @keyframes enterFromBottom {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 0.75; }
+    }
     @keyframes introCardEnterFromTop {
       from { transform: rotate(-2deg) translateY(-110vh); }
       to   { transform: rotate(-2deg) translateY(0); }
@@ -413,6 +417,23 @@ function IntroScreen({ onStart, isLeaving, enterFromTop }) {
           }}/>
         </div>
       ))}
+
+      <a
+        href="https://www.linkedin.com/in/marta-gracia-ibanez/"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: 'absolute', bottom: 'max(20px, calc(16px + env(safe-area-inset-bottom)))',
+          left: 0, right: 0, textAlign: 'center',
+          fontFamily: 'Caveat', fontSize: 18, color: '#8a7a5a',
+          textDecoration: 'none', opacity: 0.75,
+          animation: isLeaving ? `introCircleExitLeft 0.45s cubic-bezier(0.4,0,1,0.5) 0.22s both` : enterFromTop ? `enterFromBottom 0.6s cubic-bezier(0.25,0.46,0.45,0.94) 0.72s both` : 'none',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.textDecoration = 'underline'; }}
+        onMouseLeave={e => { e.currentTarget.style.opacity = '0.75'; e.currentTarget.style.textDecoration = 'none'; }}
+      >
+        Made by Marta Gracia Ibáñez <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{display:'inline-block',verticalAlign:'middle',marginLeft:3,position:'relative',top:'-1px'}}><path d="M8.75 9.5H13.4905L8.22232 14.7172C7.928 15.0086 7.92569 15.4835 8.21715 15.7778C8.50862 16.0721 8.98349 16.0744 9.2778 15.783L14.5 10.6114V15.25C14.5 15.6642 14.8358 16 15.25 16C15.6642 16 16 15.6642 16 15.25V8.75C16 8.33579 15.6642 8 15.25 8H8.75C8.33579 8 8 8.33579 8 8.75C8 9.16421 8.33579 9.5 8.75 9.5Z" fill="currentColor"/><path d="M6.25 3C4.45507 3 3 4.45507 3 6.25V17.75C3 19.5449 4.45507 21 6.25 21H17.75C19.5449 21 21 19.5449 21 17.75V6.25C21 4.45507 19.5449 3 17.75 3H6.25ZM4.5 6.25C4.5 5.2835 5.2835 4.5 6.25 4.5H17.75C18.7165 4.5 19.5 5.2835 19.5 6.25V17.75C19.5 18.7165 18.7165 19.5 17.75 19.5H6.25C5.2835 19.5 4.5 18.7165 4.5 17.75V6.25Z" fill="currentColor"/></svg>
+      </a>
 
       <div style={{
         background: '#fef48a', padding: '32px 36px',
